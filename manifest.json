@@ -1,0 +1,20 @@
+{
+  "name": "小説管理 - Novel Manager",
+  "short_name": "小説管理",
+  "description": "小説の設定・キャラクター・プロットを管理し、執筆するためのアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "ja"
+}

@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>小説エディタ</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --accent: #e94560;
+      --accent2: #a855f7;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --border: #2d3748;
+      --card: #1e2a3a;
+      --card2: #253347;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --sidebar-w: 280px;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, var(--bg2), var(--bg3));
+      border-bottom: 2px solid var(--accent);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .header-project-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      padding: 4px 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .header-project-name:hover { border-color: var(--accent2); }
+    .header-spacer { flex: 1; }
+    .header-btn {
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .header-btn:hover { background: var(--bg3); border-color: var(--accent2); }
+    .header-btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .header-btn.accent:hover { opacity: 0.85; }
+    .save-indicator {
+      font-size: 0.75rem;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .save-indicator.show { opacity: 1; }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main-wrap {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-header-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex: 1;
+    }
+    .sidebar-add-btn {
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sidebar-add-btn:hover { background: var(--accent); color: #fff; }
+    .sidebar-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+    .sidebar-tree::-webkit-scrollbar { width: 6px; }
+    .sidebar-tree::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Chapter */
+    .chapter-item {
+      margin: 2px 6px;
+    }
+    .chapter-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .chapter-header:hover { background: var(--card); }
+    .chapter-toggle {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: var(--text2);
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+    .chapter-toggle.open { transform: rotate(90deg); }
+    .chapter-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .chapter-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .chapter-header:hover .chapter-actions { opacity: 1; }
+    .ch-action-btn {
+      width: 22px;
+      height: 22px;
+      border: none;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+    }
+    .ch-action-btn:hover { background: var(--bg3); color: var(--text); }
+    .ch-action-btn.del:hover { color: var(--accent); }
+
+    /* Episode */
+    .episode-list {
+      padding-left: 20px;
+      overflow: hidden;
+      transition: max-height 0.2s ease;
+    }
+    .episode-list.collapsed { max-height: 0 !important; }
+    .episode-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      margin: 1px 0;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .episode-item:hover { background: var(--card); }
+    .episode-item.active { background: var(--bg3); border-left: 3px solid var(--accent); }
+    .episode-icon {
+      font-size: 0.7rem;
+      color: var(--text2);
+      flex-shrink: 0;
+    }
+    .episode-label {
+      font-size: 0.82rem;
+      color: var(--text);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .episode-actions {
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .episode-item:hover .episode-actions { opacity: 1; }
+    .ep-action-btn {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+    }
+    .ep-action-btn:hover { background: var(--bg3); color: var(--text); }
+    .ep-action-btn.del:hover { color: var(--accent); }
+
+    /* ===== EDITOR AREA ===== */
+    .editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .editor-toolbar {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg2);
+      flex-shrink: 0;
+    }
+    .editor-ep-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .toolbar-btn {
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .toolbar-btn:hover { background: var(--bg3); border-color: var(--accent2); }
+    .toolbar-btn.cleanup { color: var(--warning); border-color: var(--warning); }
+    .toolbar-btn.cleanup:hover { background: var(--warning); color: #000; }
+    .toolbar-btn.novel-fmt { color: var(--accent2); border-color: var(--accent2); }
+    .toolbar-btn.novel-fmt:hover { background: var(--accent2); color: #fff; }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+    .editor-textarea {
+      flex: 1;
+      background: var(--card);
+      color: var(--text);
+      border: none;
+      padding: 24px 32px;
+      font-size: 1rem;
+      line-height: 2;
+      font-family: 'Yu Mincho', 'Hiragino Mincho ProN', 'MS Mincho', serif;
+      resize: none;
+      outline: none;
+      overflow-y: auto;
+    }
+    .editor-textarea::placeholder {
+      color: var(--text2);
+      opacity: 0.5;
+    }
+    .editor-textarea::-webkit-scrollbar { width: 8px; }
+    .editor-textarea::-webkit-scrollbar-track { background: var(--bg); }
+    .editor-textarea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .editor-textarea::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+    /* Writing mode toggle */
+    .editor-textarea.vertical {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      padding: 32px 24px;
+    }
+
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      padding: 5px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.75rem;
+      color: var(--text2);
+      flex-shrink: 0;
+    }
+    .status-item { white-space: nowrap; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text2);
+    }
+    .empty-state-icon { font-size: 3rem; opacity: 0.3; }
+    .empty-state-text { font-size: 0.9rem; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .modal-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+    }
+    .modal-input:focus { border-color: var(--accent2); }
+    .modal-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .modal-btn {
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-btn:hover { background: var(--bg3); }
+    .modal-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .modal-btn.primary:hover { opacity: 0.85; }
+
+    /* ===== CONTEXT MENU ===== */
+    .ctx-menu {
+      display: none;
+      position: fixed;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 160px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      z-index: 2000;
+    }
+    .ctx-menu.open { display: block; }
+    .ctx-menu-item {
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background 0.1s;
+    }
+    .ctx-menu-item:hover { background: var(--bg3); }
+    .ctx-menu-item.danger { color: var(--accent); }
+    .ctx-menu-item.danger:hover { background: rgba(233,69,96,0.15); }
+    .ctx-menu-sep { height: 1px; background: var(--border); margin: 4px 8px; }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: toastIn 0.3s forwards;
+    }
+    .toast.success { border-color: var(--success); }
+    .toast.warn { border-color: var(--warning); }
+    .toast.error { border-color: var(--accent); }
+    @keyframes toastIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cleanup preview */
+    .cleanup-preview {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+    .cleanup-stat { color: var(--warning); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <a href="index.html" style="color:var(--accent);font-size:1.2rem;text-decoration:none;margin-right:4px" title="ホームへ戻る">&#8962;</a>
+    <div class="header-title">Novel Editor</div>
+    <div class="header-project-name" id="projectName" onclick="renameProject()" title="クリックして名前を変更">無題のプロジェクト</div>
+    <div class="header-spacer"></div>
+    <span class="save-indicator" id="saveIndicator">保存済み</span>
+    <button class="header-btn" onclick="importProject()">インポート</button>
+    <button class="header-btn" onclick="exportProject()">エクスポート</button>
+    <button class="header-btn" id="writingModeBtn" onclick="toggleWritingMode()">縦書き</button>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main-wrap">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-header-label">構成</span>
+        <button class="sidebar-add-btn" onclick="addChapter()">+ 章を追加</button>
+      </div>
+      <div class="sidebar-tree" id="sidebarTree"></div>
+    </div>
+
+    <!-- EDITOR -->
+    <div class="editor-area" id="editorArea">
+      <div class="editor-toolbar" id="editorToolbar" style="display:none;">
+        <div class="editor-ep-title" id="editorEpTitle"></div>
+        <button class="toolbar-btn" onclick="copyEpisodeText()">コピー</button>
+        <button class="toolbar-btn cleanup" onclick="cleanupText()">空白整形</button>
+        <button class="toolbar-btn novel-fmt" onclick="novelFormat()">小説整形</button>
+        <button class="toolbar-btn" onclick="showStats()">文字数</button>
+      </div>
+      <div class="editor-container" id="editorContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">&#9997;</div>
+          <div class="empty-state-text">左のサイドバーから章と話を追加して、執筆を始めましょう</div>
+        </div>
+        <textarea class="editor-textarea" id="editorTextarea" style="display:none;"
+          placeholder="ここに本文を書く..."></textarea>
+      </div>
+      <div class="status-bar" id="statusBar" style="display:none;">
+        <span class="status-item" id="statusChars">0 文字</span>
+        <span class="status-item" id="statusLines">0 行</span>
+        <span class="status-item" id="statusChapter"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-title" id="modalTitle"></div>
+      <div id="modalBody"></div>
+      <div class="modal-btns" id="modalBtns"></div>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENU -->
+  <div class="ctx-menu" id="ctxMenu"></div>
+
+  <!-- TOAST -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- HIDDEN FILE INPUT -->
+  <input type="file" id="fileInput" accept=".json" style="display:none;">
+
+<script>
+/* ================================================================
+   STATE
+================================================================ */
+let state = {
+  projectTitle: '無題のプロジェクト',
+  chapters: [],
+  activeEpisodeId: null,
+  writingMode: 'horizontal'
+};
+
+let autoSaveTimer = null;
+
+/* ================================================================
+   UTILS
+================================================================ */
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2500);
+}
+
+function showSaveIndicator() {
+  const el = document.getElementById('saveIndicator');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+/* ================================================================
+   MODAL
+================================================================ */
+function openModal(title, bodyHtml, buttons) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  const btnsEl = document.getElementById('modalBtns');
+  btnsEl.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'modal-btn' + (b.primary ? ' primary' : '');
+    btn.textContent = b.label;
+    btn.onclick = () => { closeModal(); if (b.action) b.action(); };
+    btnsEl.appendChild(btn);
+  });
+  document.getElementById('modalOverlay').classList.add('open');
+  const inp = document.querySelector('#modalBody .modal-input');
+  if (inp) setTimeout(() => inp.focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+/* ================================================================
+   CONTEXT MENU
+================================================================ */
+function showCtxMenu(e, items) {
+  e.preventDefault();
+  const menu = document.getElementById('ctxMenu');
+  menu.innerHTML = '';
+  items.forEach(item => {
+    if (item === 'sep') {
+      const sep = document.createElement('div');
+      sep.className = 'ctx-menu-sep';
+      menu.appendChild(sep);
+    } else {
+      const el = document.createElement('div');
+      el.className = 'ctx-menu-item' + (item.danger ? ' danger' : '');
+      el.textContent = item.label;
+      el.onclick = () => { closeCtxMenu(); item.action(); };
+      menu.appendChild(el);
+    }
+  });
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - items.length * 35) + 'px';
+  menu.classList.add('open');
+}
+
+function closeCtxMenu() {
+  document.getElementById('ctxMenu').classList.remove('open');
+}
+
+document.addEventListener('click', closeCtxMenu);
+
+/* ================================================================
+   DATA / PERSISTENCE
+================================================================ */
+const STORAGE_KEY = 'novel_editor_data';
+
+function saveState() {
+  // Save current textarea content first
+  syncCurrentEpisode();
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    showSaveIndicator();
+  } catch (e) {
+    console.error('Save failed:', e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const loaded = JSON.parse(raw);
+      state = { ...state, ...loaded };
+    }
+  } catch (e) {
+    console.error('Load failed:', e);
+  }
+}
+
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(saveState, 1500);
+}
+
+function syncCurrentEpisode() {
+  if (!state.activeEpisodeId) return;
+  const textarea = document.getElementById('editorTextarea');
+  if (textarea.style.display === 'none') return;
+  const ep = findEpisode(state.activeEpisodeId);
+  if (ep) ep.content = textarea.value;
+}
+
+function findEpisode(epId) {
+  for (const ch of state.chapters) {
+    for (const ep of ch.episodes) {
+      if (ep.id === epId) return ep;
+    }
+  }
+  return null;
+}
+
+function findChapterOfEpisode(epId) {
+  for (const ch of state.chapters) {
+    for (const ep of ch.episodes) {
+      if (ep.id === epId) return ch;
+    }
+  }
+  return null;
+}
+
+/* ================================================================
+   SIDEBAR RENDER
+================================================================ */
+function renderSidebar() {
+  const tree = document.getElementById('sidebarTree');
+  tree.innerHTML = '';
+
+  state.chapters.forEach((ch, chIdx) => {
+    const chEl = document.createElement('div');
+    chEl.className = 'chapter-item';
+    chEl.dataset.chId = ch.id;
+
+    // Chapter header
+    const header = document.createElement('div');
+    header.className = 'chapter-header';
+    header.innerHTML = `
+      <div class="chapter-toggle ${ch.collapsed ? '' : 'open'}">&#9654;</div>
+      <div class="chapter-label">${escHtml(ch.title)}</div>
+      <div class="chapter-actions">
+        <button class="ch-action-btn" title="話を追加" onclick="event.stopPropagation(); addEpisode('${ch.id}')">+</button>
+        <button class="ch-action-btn del" title="削除" onclick="event.stopPropagation(); deleteChapter('${ch.id}')">&#10005;</button>
+      </div>
+    `;
+    header.onclick = (e) => {
+      if (e.target.closest('.ch-action-btn')) return;
+      ch.collapsed = !ch.collapsed;
+      renderSidebar();
+      scheduleAutoSave();
+    };
+    header.oncontextmenu = (e) => {
+      showCtxMenu(e, [
+        { label: '名前を変更', action: () => renameChapter(ch.id) },
+        { label: '話を追加', action: () => addEpisode(ch.id) },
+        'sep',
+        { label: '上へ移動', action: () => moveChapter(ch.id, -1) },
+        { label: '下へ移動', action: () => moveChapter(ch.id, 1) },
+        'sep',
+        { label: '削除', danger: true, action: () => deleteChapter(ch.id) }
+      ]);
+    };
+    chEl.appendChild(header);
+
+    // Episodes
+    const epList = document.createElement('div');
+    epList.className = 'episode-list' + (ch.collapsed ? ' collapsed' : '');
+    if (!ch.collapsed) epList.style.maxHeight = (ch.episodes.length * 40 + 10) + 'px';
+
+    ch.episodes.forEach((ep, epIdx) => {
+      const epEl = document.createElement('div');
+      epEl.className = 'episode-item' + (ep.id === state.activeEpisodeId ? ' active' : '');
+      epEl.innerHTML = `
+        <span class="episode-icon">&#9679;</span>
+        <span class="episode-label">${escHtml(ep.title)}</span>
+        <div class="episode-actions">
+          <button class="ep-action-btn del" title="削除" onclick="event.stopPropagation(); deleteEpisode('${ch.id}', '${ep.id}')">&#10005;</button>
+        </div>
+      `;
+      epEl.onclick = (e) => {
+        if (e.target.closest('.ep-action-btn')) return;
+        selectEpisode(ep.id);
+      };
+      epEl.oncontextmenu = (e) => {
+        showCtxMenu(e, [
+          { label: '名前を変更', action: () => renameEpisode(ep.id) },
+          'sep',
+          { label: '上へ移動', action: () => moveEpisode(ch.id, ep.id, -1) },
+          { label: '下へ移動', action: () => moveEpisode(ch.id, ep.id, 1) },
+          'sep',
+          { label: '削除', danger: true, action: () => deleteEpisode(ch.id, ep.id) }
+        ]);
+      };
+      epList.appendChild(epEl);
+    });
+
+    chEl.appendChild(epList);
+    tree.appendChild(chEl);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ================================================================
+   CHAPTER / EPISODE OPERATIONS
+================================================================ */
+function addChapter() {
+  const num = state.chapters.length + 1;
+  openModal('新しい章', `<input class="modal-input" id="newChName" value="第${num}章" placeholder="章のタイトル">`, [
+    { label: 'キャンセル' },
+    { label: '追加', primary: true, action: () => {
+      const name = document.getElementById('newChName').value.trim() || `第${num}章`;
+      state.chapters.push({ id: 'ch_' + uid(), title: name, episodes: [], collapsed: false });
+      renderSidebar();
+      saveState();
+      toast('章を追加しました');
+    }}
+  ]);
+}
+
+function addEpisode(chId) {
+  const ch = state.chapters.find(c => c.id === chId);
+  if (!ch) return;
+  const num = ch.episodes.length + 1;
+  openModal('新しい話', `<input class="modal-input" id="newEpName" value="第${num}話" placeholder="話のタイトル">`, [
+    { label: 'キャンセル' },
+    { label: '追加', primary: true, action: () => {
+      const name = document.getElementById('newEpName').value.trim() || `第${num}話`;
+      const epId = 'ep_' + uid();
+      ch.episodes.push({ id: epId, title: name, content: '' });
+      ch.collapsed = false;
+      renderSidebar();
+      selectEpisode(epId);
+      saveState();
+      toast('話を追加しました');
+    }}
+  ]);
+}
+
+function deleteChapter(chId) {
+  const ch = state.chapters.find(c => c.id === chId);
+  if (!ch) return;
+  openModal('章の削除', `<p style="font-size:0.9rem;color:var(--text2);">「${escHtml(ch.title)}」とその中の全ての話を削除しますか？<br>この操作は取り消せません。</p>`, [
+    { label: 'キャンセル' },
+    { label: '削除', primary: true, action: () => {
+      // Check if active episode is in this chapter
+      const hasActive = ch.episodes.some(ep => ep.id === state.activeEpisodeId);
+      state.chapters = state.chapters.filter(c => c.id !== chId);
+      if (hasActive) {
+        state.activeEpisodeId = null;
+        showEmptyState();
+      }
+      renderSidebar();
+      saveState();
+      toast('章を削除しました', 'warn');
+    }}
+  ]);
+}
+
+function deleteEpisode(chId, epId) {
+  const ch = state.chapters.find(c => c.id === chId);
+  if (!ch) return;
+  const ep = ch.episodes.find(e => e.id === epId);
+  if (!ep) return;
+  openModal('話の削除', `<p style="font-size:0.9rem;color:var(--text2);">「${escHtml(ep.title)}」を削除しますか？<br>この操作は取り消せません。</p>`, [
+    { label: 'キャンセル' },
+    { label: '削除', primary: true, action: () => {
+      ch.episodes = ch.episodes.filter(e => e.id !== epId);
+      if (state.activeEpisodeId === epId) {
+        state.activeEpisodeId = null;
+        showEmptyState();
+      }
+      renderSidebar();
+      saveState();
+      toast('話を削除しました', 'warn');
+    }}
+  ]);
+}
+
+function renameChapter(chId) {
+  const ch = state.chapters.find(c => c.id === chId);
+  if (!ch) return;
+  openModal('章の名前を変更', `<input class="modal-input" id="renChName" value="${escHtml(ch.title)}">`, [
+    { label: 'キャンセル' },
+    { label: '変更', primary: true, action: () => {
+      const name = document.getElementById('renChName').value.trim();
+      if (name) { ch.title = name; renderSidebar(); saveState(); }
+    }}
+  ]);
+}
+
+function renameEpisode(epId) {
+  const ep = findEpisode(epId);
+  if (!ep) return;
+  openModal('話の名前を変更', `<input class="modal-input" id="renEpName" value="${escHtml(ep.title)}">`, [
+    { label: 'キャンセル' },
+    { label: '変更', primary: true, action: () => {
+      const name = document.getElementById('renEpName').value.trim();
+      if (name) {
+        ep.title = name;
+        renderSidebar();
+        if (state.activeEpisodeId === epId) {
+          document.getElementById('editorEpTitle').textContent = name;
+        }
+        saveState();
+      }
+    }}
+  ]);
+}
+
+function moveChapter(chId, dir) {
+  const idx = state.chapters.findIndex(c => c.id === chId);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.chapters.length) return;
+  [state.chapters[idx], state.chapters[newIdx]] = [state.chapters[newIdx], state.chapters[idx]];
+  renderSidebar();
+  saveState();
+}
+
+function moveEpisode(chId, epId, dir) {
+  const ch = state.chapters.find(c => c.id === chId);
+  if (!ch) return;
+  const idx = ch.episodes.findIndex(e => e.id === epId);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= ch.episodes.length) return;
+  [ch.episodes[idx], ch.episodes[newIdx]] = [ch.episodes[newIdx], ch.episodes[idx]];
+  renderSidebar();
+  saveState();
+}
+
+function renameProject() {
+  openModal('プロジェクト名を変更', `<input class="modal-input" id="renProjName" value="${escHtml(state.projectTitle)}">`, [
+    { label: 'キャンセル' },
+    { label: '変更', primary: true, action: () => {
+      const name = document.getElementById('renProjName').value.trim();
+      if (name) {
+        state.projectTitle = name;
+        document.getElementById('projectName').textContent = name;
+        document.title = name + ' - 小説エディタ';
+        saveState();
+      }
+    }}
+  ]);
+}
+
+/* ================================================================
+   EDITOR
+================================================================ */
+function selectEpisode(epId) {
+  syncCurrentEpisode();
+  const ep = findEpisode(epId);
+  if (!ep) return;
+  const ch = findChapterOfEpisode(epId);
+
+  state.activeEpisodeId = epId;
+
+  // Show editor
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('editorToolbar').style.display = 'flex';
+  document.getElementById('statusBar').style.display = 'flex';
+  const textarea = document.getElementById('editorTextarea');
+  textarea.style.display = 'block';
+  textarea.value = ep.content || '';
+  document.getElementById('editorEpTitle').textContent = ep.title;
+  if (ch) document.getElementById('statusChapter').textContent = ch.title + ' / ' + ep.title;
+
+  updateStatusBar();
+  renderSidebar();
+  // スクロールを先頭に戻す（描画完了後に実行）
+  requestAnimationFrame(() => {
+    textarea.setSelectionRange(0, 0);
+    textarea.scrollTop = 0;
+    textarea.focus();
+  });
+  scheduleAutoSave();
+}
+
+function showEmptyState() {
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('editorToolbar').style.display = 'none';
+  document.getElementById('statusBar').style.display = 'none';
+  document.getElementById('editorTextarea').style.display = 'none';
+}
+
+function updateStatusBar() {
+  const textarea = document.getElementById('editorTextarea');
+  const text = textarea.value;
+  const chars = text.length;
+  const charsNoSpace = text.replace(/[\s\u3000]/g, '').length;
+  const lines = text ? text.split('\n').length : 0;
+  document.getElementById('statusChars').textContent = `${charsNoSpace} 文字（空白込み ${chars}）`;
+  document.getElementById('statusLines').textContent = `${lines} 行`;
+}
+
+// Textarea events
+document.getElementById('editorTextarea').addEventListener('input', () => {
+  updateStatusBar();
+  scheduleAutoSave();
+});
+
+// Enter key in modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('modalOverlay').classList.contains('open')) {
+    const primaryBtn = document.querySelector('#modalBtns .modal-btn.primary');
+    if (primaryBtn) primaryBtn.click();
+  }
+  if (e.key === 'Escape') {
+    closeModal();
+    closeCtxMenu();
+  }
+});
+
+/* ================================================================
+   CLEANUP (空白整形)
+================================================================ */
+function cleanupText() {
+  const textarea = document.getElementById('editorTextarea');
+  const original = textarea.value;
+  if (!original.trim()) { toast('テキストがありません', 'warn'); return; }
+
+  // Preview changes
+  const cleaned = performCleanup(original);
+  const stats = getCleanupStats(original, cleaned);
+
+  openModal('空白整形プレビュー', `
+    <div class="cleanup-preview">
+      <div>半角スペース削除: <span class="cleanup-stat">${stats.halfSpaces}</span> 箇所</div>
+      <div>全角スペース削除: <span class="cleanup-stat">${stats.fullSpaces}</span> 箇所</div>
+      <div>余分な空行削除: <span class="cleanup-stat">${stats.blankLines}</span> 箇所</div>
+      <div>行頭・行末の空白: <span class="cleanup-stat">${stats.trimmed}</span> 箇所</div>
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+        文字数: ${original.length} → <span class="cleanup-stat">${cleaned.length}</span>
+        （<span class="cleanup-stat">${original.length - cleaned.length}</span> 文字削減）
+      </div>
+    </div>
+  `, [
+    { label: 'キャンセル' },
+    { label: '整形を適用', primary: true, action: () => {
+      textarea.value = cleaned;
+      updateStatusBar();
+      scheduleAutoSave();
+      toast('空白を整形しました');
+    }}
+  ]);
+}
+
+function performCleanup(text) {
+  // 1. Replace full-width spaces with nothing (except intentional indentation)
+  text = text.replace(/\u3000/g, '');
+  // 2. Replace multiple half-width spaces with single (within lines)
+  text = text.replace(/[ \t]{2,}/g, ' ');
+  // 3. Trim each line
+  text = text.split('\n').map(line => line.trim()).join('\n');
+  // 4. Collapse 3+ consecutive blank lines into 1 blank line
+  text = text.replace(/\n{3,}/g, '\n\n');
+  // 5. Remove leading/trailing whitespace
+  text = text.trim();
+  return text;
+}
+
+function getCleanupStats(original, cleaned) {
+  const halfSpaces = (original.match(/[ \t]{2,}/g) || []).length;
+  const fullSpaces = (original.match(/\u3000/g) || []).length;
+  const origLines = original.split('\n');
+  const cleanLines = cleaned.split('\n');
+  const blankLines = origLines.filter((l, i, arr) => l.trim() === '' && i > 0 && arr[i-1].trim() === '' && (i < 2 || arr[i-2].trim() === '')).length;
+  const trimmed = origLines.filter(l => l !== l.trim()).length;
+  return { halfSpaces, fullSpaces, blankLines, trimmed };
+}
+
+/* ================================================================
+   NOVEL FORMAT (小説整形)
+   一般的な日本語小説のルールに基づく一括整形
+================================================================ */
+function novelFormat() {
+  const textarea = document.getElementById('editorTextarea');
+  const original = textarea.value;
+  if (!original.trim()) { toast('テキストがありません', 'warn'); return; }
+
+  const formatted = performNovelFormat(original);
+  const diff = getNovelFormatStats(original, formatted);
+
+  openModal('小説整形プレビュー', `
+    <div class="cleanup-preview">
+      <div style="margin-bottom:10px;font-size:0.8rem;color:var(--text2);line-height:1.6;">
+        一般的な小説のルールに基づいて整形します
+      </div>
+      <div>字下げ追加（行頭に全角スペース）: <span class="cleanup-stat">${diff.indented}</span> 箇所</div>
+      <div>！？後の全角スペース挿入: <span class="cleanup-stat">${diff.exclamationSpaces}</span> 箇所</div>
+      <div>三点リーダー統一（… → ……）: <span class="cleanup-stat">${diff.ellipsis}</span> 箇所</div>
+      <div>ダッシュ統一（― → ――）: <span class="cleanup-stat">${diff.dashes}</span> 箇所</div>
+      ${diff.alreadyIndented > 0 ? `<div style="color:var(--text2);font-size:0.78rem;margin-top:4px;">※ 既にインデント済み: ${diff.alreadyIndented} 行（スキップ）</div>` : ''}
+      ${diff.dialogueLines > 0 ? `<div style="color:var(--text2);font-size:0.78rem;">※ 会話文（「『）: ${diff.dialogueLines} 行（スキップ）</div>` : ''}
+    </div>
+  `, [
+    { label: 'キャンセル' },
+    { label: '整形を適用', primary: true, action: () => {
+      textarea.value = formatted;
+      updateStatusBar();
+      scheduleAutoSave();
+      toast('小説整形を適用しました');
+    }}
+  ]);
+}
+
+function performNovelFormat(text) {
+  let lines = text.split('\n');
+
+  lines = lines.map(line => {
+    // Skip empty lines
+    if (line.trim() === '') return line;
+
+    // --- Rule 1: 字下げ（段落インデント）---
+    // 会話文（「『）で始まる行はインデントしない
+    // 既に全角スペースで始まる行もスキップ
+    const trimmed = line.trim();
+    const isDialogue = /^[「『（]/.test(trimmed);
+    const isAlreadyIndented = /^\u3000/.test(trimmed);
+
+    if (!isDialogue && !isAlreadyIndented && trimmed.length > 0) {
+      line = '\u3000' + trimmed;
+    } else {
+      line = trimmed;
+    }
+
+    return line;
+  });
+
+  let result = lines.join('\n');
+
+  // --- Rule 2: ！？の後に文が続く場合、全角スペースを挿入 ---
+  // ！？!?⁉⁈‼❓❗ 等の直後に閉じ括弧や改行以外の文字が来る場合にスペース挿入
+  // \uFE0F (異体字セレクタ/絵文字表示) も考慮
+  result = result.replace(/([！？!?⁉⁈‼⁇❓❗]\uFE0F?)(?![！？!?⁉⁈‼⁇❓❗\uFE0F\s\n」』）\u3000])/g, '$1\u3000');
+
+  // --- Rule 3: 三点リーダーを偶数個（2個セット）に統一 ---
+  // 半角...を全角……に変換
+  result = result.replace(/\.{3,}/g, '……');
+  // 奇数個の…を偶数個に（1個→2個、3個→2個）
+  result = result.replace(/…{1,}/g, (match) => {
+    const count = match.length;
+    // 偶数個ならそのまま、奇数個なら1つ足して偶数に
+    const evenCount = count % 2 === 0 ? count : count + 1;
+    return '…'.repeat(evenCount);
+  });
+
+  // --- Rule 4: ダッシュを偶数個（2個セット）に統一 ---
+  // 半角ダッシュを全角に
+  result = result.replace(/\-{2,}/g, '――');
+  // 奇数個の―を偶数個に
+  result = result.replace(/―{1,}/g, (match) => {
+    const count = match.length;
+    const evenCount = count % 2 === 0 ? count : count + 1;
+    return '―'.repeat(evenCount);
+  });
+
+  return result;
+}
+
+function getNovelFormatStats(original, formatted) {
+  const origLines = original.split('\n');
+  const fmtLines = formatted.split('\n');
+  let indented = 0;
+  let alreadyIndented = 0;
+  let dialogueLines = 0;
+
+  origLines.forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed === '') return;
+    const isDialogue = /^[「『（]/.test(trimmed);
+    const isAlreadyIndented = /^\u3000/.test(trimmed);
+    if (isDialogue) {
+      dialogueLines++;
+    } else if (isAlreadyIndented) {
+      alreadyIndented++;
+    } else {
+      indented++;
+    }
+  });
+
+  // Count ！？ spaces added
+  const origExcl = (original.match(/([！？!?⁉⁈‼⁇❓❗]\uFE0F?)(?![！？!?⁉⁈‼⁇❓❗\uFE0F\s\n」』）\u3000])/g) || []).length;
+  const exclamationSpaces = origExcl;
+
+  // Count ellipsis fixes
+  const origEllipsis = (original.match(/\.{3,}/g) || []).length;
+  const origOddEllipsis = (original.match(/…/g) || []).filter((_, i, arr) => {
+    // Rough count of odd ellipsis groups
+    return true;
+  }).length;
+  // Simpler: count groups of … that are odd-length
+  const ellipsisGroups = original.match(/…+/g) || [];
+  const oddEllipsis = ellipsisGroups.filter(g => g.length % 2 !== 0).length;
+  const dotEllipsis = (original.match(/\.{3,}/g) || []).length;
+  const ellipsis = oddEllipsis + dotEllipsis;
+
+  // Count dash fixes
+  const dashGroups = original.match(/―+/g) || [];
+  const oddDashes = dashGroups.filter(g => g.length % 2 !== 0).length;
+  const hyphenDashes = (original.match(/\-{2,}/g) || []).length;
+  const dashes = oddDashes + hyphenDashes;
+
+  return { indented, alreadyIndented, dialogueLines, exclamationSpaces, ellipsis, dashes };
+}
+
+/* ================================================================
+   PASTE CLEANUP
+================================================================ */
+document.getElementById('editorTextarea').addEventListener('paste', (e) => {
+  // Optionally auto-cleanup on paste - show notification
+  setTimeout(() => {
+    const textarea = e.target;
+    const text = textarea.value;
+    const hasExtraSpaces = /\u3000/.test(text) || /[ \t]{2,}/.test(text) || /\n{3,}/.test(text);
+    if (hasExtraSpaces) {
+      toast('余分な空白を検出しました。「空白整形」ボタンで一括削除できます', 'warn');
+    }
+  }, 100);
+});
+
+/* ================================================================
+   WRITING MODE
+================================================================ */
+function toggleWritingMode() {
+  const textarea = document.getElementById('editorTextarea');
+  const btn = document.getElementById('writingModeBtn');
+  if (state.writingMode === 'horizontal') {
+    state.writingMode = 'vertical';
+    textarea.classList.add('vertical');
+    btn.textContent = '横書き';
+  } else {
+    state.writingMode = 'horizontal';
+    textarea.classList.remove('vertical');
+    btn.textContent = '縦書き';
+  }
+  saveState();
+}
+
+/* ================================================================
+   COPY EPISODE TEXT
+================================================================ */
+function copyEpisodeText() {
+  const textarea = document.getElementById('editorTextarea');
+  const text = textarea.value;
+  if (!text.trim()) { toast('コピーするテキストがありません', 'warn'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    toast('本文をコピーしました');
+  }).catch(() => {
+    // file:// の場合 clipboard API が使えないことがある
+    textarea.select();
+    document.execCommand('copy');
+    toast('本文をコピーしました');
+  });
+}
+
+/* ================================================================
+   STATS
+================================================================ */
+function showStats() {
+  let totalChars = 0;
+  let totalLines = 0;
+  let totalEps = 0;
+  const chapterStats = [];
+
+  state.chapters.forEach(ch => {
+    let chChars = 0;
+    ch.episodes.forEach(ep => {
+      const text = ep.id === state.activeEpisodeId
+        ? document.getElementById('editorTextarea').value
+        : (ep.content || '');
+      const c = text.replace(/[\s\u3000]/g, '').length;
+      chChars += c;
+      totalLines += text ? text.split('\n').length : 0;
+      totalEps++;
+    });
+    totalChars += chChars;
+    chapterStats.push({ title: ch.title, chars: chChars, eps: ch.episodes.length });
+  });
+
+  let html = `<div style="font-size:0.88rem;line-height:1.8;">`;
+  html += `<div style="margin-bottom:12px;">
+    <div>合計文字数: <strong style="color:var(--accent)">${totalChars.toLocaleString()}</strong> 文字</div>
+    <div>合計行数: <strong>${totalLines.toLocaleString()}</strong> 行</div>
+    <div>章数: <strong>${state.chapters.length}</strong> / 話数: <strong>${totalEps}</strong></div>
+  </div>`;
+
+  if (chapterStats.length > 0) {
+    html += `<div style="border-top:1px solid var(--border);padding-top:10px;">`;
+    chapterStats.forEach(cs => {
+      html += `<div style="display:flex;justify-content:space-between;padding:3px 0;">
+        <span>${escHtml(cs.title)}（${cs.eps}話）</span>
+        <span style="color:var(--accent2)">${cs.chars.toLocaleString()} 文字</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  openModal('文字数統計', html, [{ label: '閉じる' }]);
+}
+
+/* ================================================================
+   EXPORT / IMPORT
+================================================================ */
+function exportProject() {
+  syncCurrentEpisode();
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.projectTitle || 'novel') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('エクスポートしました');
+}
+
+function importProject() {
+  const fileInput = document.getElementById('fileInput');
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.chapters) throw new Error('Invalid format');
+        openModal('インポート確認', `<p style="font-size:0.9rem;color:var(--text2);">「${escHtml(data.projectTitle || '不明')}」をインポートしますか？<br>現在のデータは上書きされます。</p>`, [
+          { label: 'キャンセル' },
+          { label: 'インポート', primary: true, action: () => {
+            state = { ...state, ...data };
+            state.activeEpisodeId = null;
+            document.getElementById('projectName').textContent = state.projectTitle;
+            document.title = state.projectTitle + ' - 小説エディタ';
+            showEmptyState();
+            renderSidebar();
+            saveState();
+            toast('インポートしました');
+          }}
+        ]);
+      } catch (err) {
+        toast('ファイルの形式が正しくありません', 'error');
+      }
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  };
+  fileInput.click();
+}
+
+/* ================================================================
+   KEYBOARD SHORTCUTS
+================================================================ */
+document.addEventListener('keydown', e => {
+  // Ctrl+S: Save
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveState();
+    toast('保存しました');
+  }
+});
+
+/* ================================================================
+   INIT
+================================================================ */
+function init() {
+  loadState();
+  document.getElementById('projectName').textContent = state.projectTitle;
+  document.title = state.projectTitle + ' - 小説エディタ';
+
+  if (state.writingMode === 'vertical') {
+    document.getElementById('editorTextarea').classList.add('vertical');
+    document.getElementById('writingModeBtn').textContent = '横書き';
+  }
+
+  renderSidebar();
+
+  // Restore active episode
+  if (state.activeEpisodeId) {
+    const ep = findEpisode(state.activeEpisodeId);
+    if (ep) {
+      selectEpisode(state.activeEpisodeId);
+    } else {
+      state.activeEpisodeId = null;
+      showEmptyState();
+    }
+  }
+}
+
+init();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>

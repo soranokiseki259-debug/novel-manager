@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>小説管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --accent: #e94560;
+      --accent2: #a855f7;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --border: #2d3748;
+      --card: #1e2a3a;
+      --card2: #253347;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, var(--bg2), var(--bg3));
+      border-bottom: 2px solid var(--accent);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-spacer { flex: 1; }
+    .header-btn {
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .header-btn:hover { border-color: var(--accent); background: var(--card2); }
+
+    /* ===== MAIN ===== */
+    main {
+      flex: 1;
+      padding: 20px;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding-bottom: 100px;
+    }
+
+    /* ===== SECTION TITLES ===== */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 24px 0 12px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ===== QUICK ACTIONS ===== */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .quick-card {
+      background: linear-gradient(135deg, var(--card), var(--card2));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quick-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .quick-card:active { transform: scale(0.98); }
+    .quick-icon { font-size: 1.8rem; }
+    .quick-label { font-size: 0.95rem; font-weight: 600; }
+    .quick-desc { font-size: 0.78rem; color: var(--text2); line-height: 1.4; }
+
+    /* ===== PROJECT LIST ===== */
+    .project-list { display: flex; flex-direction: column; gap: 10px; }
+    .project-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .project-card:hover { border-color: var(--accent2); background: var(--card2); }
+    .project-card:active { transform: scale(0.99); }
+    .project-thumb {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      color: #fff;
+      font-weight: 700;
+    }
+    .project-info { flex: 1; min-width: 0; }
+    .project-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .project-meta {
+      font-size: 0.75rem;
+      color: var(--text2);
+      margin-top: 3px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .project-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .proj-btn {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg2);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .proj-btn:hover { border-color: var(--accent); }
+    .proj-btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .proj-btn.accent:hover { opacity: 0.85; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text2);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+    .empty-text { font-size: 0.9rem; line-height: 1.6; }
+
+    /* ===== DATA MANAGEMENT ===== */
+    .data-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .data-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .data-btn:hover { border-color: var(--accent); color: var(--text); }
+    .data-btn:active { transform: scale(0.98); }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--accent);
+    }
+    .modal-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      justify-content: flex-end;
+    }
+    .modal-btns button {
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .modal-btns .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card2);
+      color: var(--text);
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 300;
+      pointer-events: none;
+      border: 1px solid var(--border);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== INSTALL BANNER ===== */
+    .install-banner {
+      display: none;
+      background: linear-gradient(135deg, var(--bg3), var(--bg2));
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 12px;
+    }
+    .install-banner.show { display: flex; }
+    .install-banner-text { flex: 1; font-size: 0.85rem; line-height: 1.4; }
+    .install-banner-text strong { color: var(--accent); }
+    .install-btn {
+      padding: 8px 18px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .install-dismiss {
+      background: none;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 4px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      main { padding: 14px; padding-bottom: 90px; }
+      .quick-actions { gap: 8px; }
+      .quick-card { padding: 14px 12px; }
+      .project-actions { flex-direction: column; }
+      .proj-btn { font-size: 0.7rem; padding: 5px 8px; }
+    }
+
+    /* Hidden file input */
+    #importInput { display: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="icon.svg" alt="" class="logo">
+  <span class="header-title">小説管理</span>
+  <div class="header-spacer"></div>
+</header>
+
+<main>
+  <!-- Install Banner -->
+  <div class="install-banner" id="installBanner">
+    <div class="install-banner-text">
+      <strong>ホーム画面に追加</strong>してアプリとして使えます
+    </div>
+    <button class="install-btn" id="installBtn" onclick="installPWA()">追加</button>
+    <button class="install-dismiss" onclick="dismissInstall()">&#x2715;</button>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="section-title">ツール</div>
+  <div class="quick-actions">
+    <a class="quick-card" href="novel-settings.html">
+      <div class="quick-icon">&#128209;</div>
+      <div class="quick-label">設定まとめ</div>
+      <div class="quick-desc">キャラ・世界観・プロットを管理</div>
+    </a>
+    <a class="quick-card" href="novel-editor.html">
+      <div class="quick-icon">&#9997;&#65039;</div>
+      <div class="quick-label">執筆エディタ</div>
+      <div class="quick-desc">章・エピソード単位で執筆</div>
+    </a>
+  </div>
+
+  <!-- Projects: Settings -->
+  <div class="section-title">設定プロジェクト一覧</div>
+  <div class="project-list" id="settingsProjects"></div>
+
+  <!-- Projects: Editor -->
+  <div class="section-title">執筆プロジェクト一覧</div>
+  <div class="project-list" id="editorProjects"></div>
+
+  <!-- Data Management -->
+  <div class="section-title">データ管理</div>
+  <div class="data-actions">
+    <button class="data-btn" onclick="importJSON()">&#128229; JSONインポート</button>
+    <button class="data-btn" onclick="exportAllData()">&#128228; 全データエクスポート</button>
+  </div>
+</main>
+
+<input type="file" id="importInput" accept=".json" multiple>
+
+<!-- Action Modal -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== PWA Install =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('pwa_dismissed')) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+});
+
+function installPWA() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      toast('ホーム画面に追加しました');
+    }
+    deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('pwa_dismissed', '1');
+}
+
+// ===== Service Worker Registration =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ===== Toast =====
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ===== Load Projects =====
+function loadProjects() {
+  loadSettingsProjects();
+  loadEditorProjects();
+}
+
+function loadSettingsProjects() {
+  const container = document.getElementById('settingsProjects');
+  const projects = JSON.parse(localStorage.getItem('nb_projects') || '[]');
+
+  if (!projects.length) {
+    // Check for legacy key
+    const legacy = localStorage.getItem('novelboard');
+    if (legacy) {
+      try {
+        const data = JSON.parse(legacy);
+        container.innerHTML = renderProjectCard(
+          data.projectTitle || '無題のプロジェクト',
+          { chars: (data.chars||[]).length, places: (data.places||[]).length, plot: (data.plot||[]).length },
+          'settings',
+          'legacy'
+        );
+        return;
+      } catch(e) {}
+    }
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128214;</div><div class="empty-text">設定プロジェクトがありません<br>「設定まとめ」から新規作成できます</div></div>';
+    return;
+  }
+
+  container.innerHTML = projects.map(p => {
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem('nb_proj_' + p.id) || '{}'); } catch(e) {}
+    const stats = {
+      chars: (data.chars||[]).length,
+      places: (data.places||[]).length,
+      plot: (data.plot||[]).length,
+      terms: (data.terms||[]).length
+    };
+    return renderProjectCard(p.title || data.projectTitle || '無題', stats, 'settings', p.id);
+  }).join('');
+}
+
+function loadEditorProjects() {
+  const container = document.getElementById('editorProjects');
+  const raw = localStorage.getItem('novel_editor_data');
+  if (!raw) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9997;&#65039;</div><div class="empty-text">執筆プロジェクトがありません<br>「執筆エディタ」から新規作成できます</div></div>';
+    return;
+  }
+
+  try {
+    const data = JSON.parse(raw);
+    const chapCount = (data.chapters||[]).length;
+    const epCount = (data.chapters||[]).reduce((s, c) => s + (c.episodes||[]).length, 0);
+    container.innerHTML = renderProjectCard(
+      data.projectTitle || '無題のプロジェクト',
+      { chapters: chapCount, episodes: epCount },
+      'editor',
+      'main'
+    );
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-text">データの読み取りに失敗しました</div></div>';
+  }
+}
+
+function renderProjectCard(title, stats, type, id) {
+  const initial = (title[0] || '?');
+  const statStr = Object.entries(stats).map(([k, v]) => {
+    const labels = { chars: 'キャラ', places: '場所', plot: 'プロット', terms: '用語', chapters: '章', episodes: 'EP' };
+    return `${labels[k] || k}: ${v}`;
+  }).join(' / ');
+
+  const openUrl = type === 'settings' ? 'novel-settings.html' : 'novel-editor.html';
+
+  return `<div class="project-card" onclick="location.href='${openUrl}'">
+    <div class="project-thumb">${initial}</div>
+    <div class="project-info">
+      <div class="project-name">${escH(title)}</div>
+      <div class="project-meta"><span>${statStr}</span></div>
+    </div>
+    <div class="project-actions">
+      <button class="proj-btn accent" onclick="event.stopPropagation(); location.href='${openUrl}'">開く</button>
+      <button class="proj-btn" onclick="event.stopPropagation(); exportProject('${type}','${id}')">書出</button>
+    </div>
+  </div>`;
+}
+
+// ===== Import =====
+function importJSON() {
+  document.getElementById('importInput').click();
+}
+
+document.getElementById('importInput').addEventListener('change', e => {
+  const files = e.target.files;
+  if (!files.length) return;
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+
+        // Detect type: settings (has chars/places) vs editor (has chapters)
+        if (data.chapters) {
+          // Editor project
+          localStorage.setItem('novel_editor_data', JSON.stringify(data));
+          toast('執筆データをインポートしました');
+        } else if (data.chars || data.places || data.plot) {
+          // Settings project — import into nb system
+          const projects = JSON.parse(localStorage.getItem('nb_projects') || '[]');
+          const id = 'p' + Date.now();
+          projects.push({ id, title: data.projectTitle || '無題' });
+          localStorage.setItem('nb_projects', JSON.stringify(projects));
+          localStorage.setItem('nb_proj_' + id, JSON.stringify(data));
+          localStorage.setItem('nb_active', id);
+          toast('設定データをインポートしました');
+        } else {
+          toast('未対応のJSON形式です');
+        }
+      } catch(err) {
+        toast('JSONの読み込みに失敗しました');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  e.target.value = '';
+  setTimeout(loadProjects, 500);
+});
+
+// ===== Export =====
+function exportProject(type, id) {
+  let data;
+  if (type === 'editor') {
+    data = localStorage.getItem('novel_editor_data');
+  } else if (id === 'legacy') {
+    data = localStorage.getItem('novelboard');
+  } else {
+    data = localStorage.getItem('nb_proj_' + id);
+  }
+
+  if (!data) { toast('データがありません'); return; }
+
+  try {
+    const parsed = JSON.parse(data);
+    const name = (parsed.projectTitle || 'project').replace(/[\\/:*?"<>|]/g, '_');
+    downloadJSON(parsed, name + '.json');
+    toast('エクスポートしました');
+  } catch(e) {
+    toast('エクスポートに失敗しました');
+  }
+}
+
+function exportAllData() {
+  const allData = {};
+
+  // Settings projects
+  const projects = JSON.parse(localStorage.getItem('nb_projects') || '[]');
+  allData.settingsProjects = projects.map(p => {
+    try { return { ...p, data: JSON.parse(localStorage.getItem('nb_proj_' + p.id) || '{}') }; }
+    catch(e) { return p; }
+  });
+
+  // Legacy
+  const legacy = localStorage.getItem('novelboard');
+  if (legacy) {
+    try { allData.legacySettings = JSON.parse(legacy); } catch(e) {}
+  }
+
+  // Editor
+  const editor = localStorage.getItem('novel_editor_data');
+  if (editor) {
+    try { allData.editorData = JSON.parse(editor); } catch(e) {}
+  }
+
+  downloadJSON(allData, 'novel_manager_backup_' + new Date().toISOString().slice(0,10) + '.json');
+  toast('全データをエクスポートしました');
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== Utility =====
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== Init =====
+loadProjects();
+</script>
+</body>
+</html>

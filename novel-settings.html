@@ -1,0 +1,3428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>小説設定まとめ</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #0f3460;
+      --accent: #e94560;
+      --accent2: #a855f7;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --border: #2d3748;
+      --card: #1e2a3a;
+      --card2: #253347;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+
+    /* ===== THEME: FOREST ===== */
+    .theme-forest {
+      --bg: #0d1f12; --bg2: #122718; --bg3: #1a3d24;
+      --accent: #4ade80; --accent2: #86efac;
+      --text: #dcfce7; --text2: #86efac;
+      --border: #1e4a2a; --card: #152b1c; --card2: #1c3825;
+    }
+    /* ===== THEME: OCEAN ===== */
+    .theme-ocean {
+      --bg: #0c1929; --bg2: #102035; --bg3: #163354;
+      --accent: #38bdf8; --accent2: #7dd3fc;
+      --text: #e0f2fe; --text2: #7dd3fc;
+      --border: #1e3a5a; --card: #132236; --card2: #1a2e48;
+    }
+    /* ===== THEME: SUNSET ===== */
+    .theme-sunset {
+      --bg: #1f1006; --bg3: #3d1f08; --bg2: #2a1508;
+      --accent: #fb923c; --accent2: #f59e0b;
+      --text: #fff7ed; --text2: #fdba74;
+      --border: #4a2810; --card: #2c1a0a; --card2: #38200d;
+    }
+    /* ===== THEME: LIGHT ===== */
+    .theme-light {
+      --bg: #f8fafc; --bg2: #f1f5f9; --bg3: #e2e8f0;
+      --accent: #e11d48; --accent2: #7c3aed;
+      --text: #0f172a; --text2: #475569;
+      --border: #cbd5e1; --card: #ffffff; --card2: #f8fafc;
+      --success: #059669; --warning: #d97706;
+    }
+    /* ===== THEME: MONOCHROME ===== */
+    .theme-mono {
+      --bg: #0a0a0a; --bg2: #111111; --bg3: #1c1c1c;
+      --accent: #d4d4d4; --accent2: #a3a3a3;
+      --text: #f5f5f5; --text2: #737373;
+      --border: #262626; --card: #141414; --card2: #1a1a1a;
+    }
+
+    /* ===== THEME MODAL ===== */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .theme-card {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .theme-card:hover { transform: scale(1.03); }
+    .theme-card.selected { border-color: var(--accent2); }
+    .theme-preview {
+      height: 60px;
+      display: flex;
+      align-items: stretch;
+    }
+    .theme-preview-sidebar { width: 30%; }
+    .theme-preview-main { flex: 1; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .theme-preview-card { border-radius: 3px; height: 10px; }
+    .theme-preview-accent { height: 4px; width: 50%; border-radius: 2px; }
+    .theme-label {
+      padding: 6px 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* ===== RENAME MODAL ===== */
+    .rename-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .rename-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .rename-tab-badge {
+      font-size: 0.72rem;
+      background: var(--bg3);
+      color: var(--text2);
+      padding: 2px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 56px;
+      text-align: center;
+    }
+    .rename-arrow { color: var(--text2); flex-shrink: 0; }
+    .rename-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 10px;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .rename-input:focus { outline: none; border-color: var(--accent2); }
+
+    /* ===== AI CONSULT MODAL ===== */
+    .ai-consult-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .ai-consult-tab {
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      color: var(--text2);
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ai-consult-tab:hover { background: var(--bg3); color: var(--text); }
+    .ai-consult-tab.active { background: var(--bg3); color: var(--text); border-color: var(--border); }
+    .ai-consult-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.85rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 380px;
+      overflow-y: auto;
+      color: var(--text);
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    }
+    .ai-consult-copy-btn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .ai-consult-note {
+      font-size: 0.78rem;
+      color: var(--text2);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, var(--bg2), var(--bg3));
+      border-bottom: 2px solid var(--accent);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 1.3rem; color: var(--text); flex: 1; }
+    header h1 span { color: var(--accent); }
+    #project-title-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 6px 12px;
+      width: 240px;
+    }
+    #project-title-input:focus { outline: none; border-color: var(--accent2); }
+
+    /* ===== LAYOUT ===== */
+    .app { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 57px); }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 200px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar nav { padding: 12px 0; flex: 1; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: var(--text2);
+      font-size: 0.9rem;
+      border-left: 3px solid transparent;
+    }
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active { background: var(--bg3); color: var(--text); border-left-color: var(--accent); }
+    .nav-item .icon { font-size: 1.1rem; }
+    .badge {
+      margin-left: auto;
+      background: var(--bg3);
+      color: var(--text2);
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+    .nav-item.active .badge { background: var(--accent); color: white; }
+
+    /* ===== MAIN ===== */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .tab-content.active { display: flex; }
+
+    /* ===== TOOLBAR ===== */
+    .toolbar {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .toolbar input[type="text"] {
+      flex: 1;
+      min-width: 140px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 7px 12px;
+      font-size: 0.88rem;
+    }
+    .toolbar input[type="text"]:focus { outline: none; border-color: var(--accent2); }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-secondary { background: var(--bg3); color: var(--text); }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+    .btn-success { background: var(--success); color: white; }
+
+    /* ===== GROUP ACCORDION (shared) ===== */
+    .group-section { display: flex; flex-direction: column; }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      transition: background 0.15s;
+    }
+    .group-header:hover { background: var(--bg3); }
+    .group-header.drag-over { background: var(--bg3); border-color: var(--accent2); box-shadow: inset 0 0 0 2px var(--accent2); }
+    .group-chevron { font-size: 0.7rem; color: var(--text2); transition: transform 0.2s; flex-shrink: 0; }
+    .group-header.collapsed .group-chevron { transform: rotate(-90deg); }
+    .group-name { font-weight: 700; font-size: 0.92rem; color: var(--text); flex: 1; }
+    .group-count { font-size: 0.75rem; color: var(--text2); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
+    .group-delete-btn {
+      opacity: 0;
+      background: transparent;
+      border: none;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: opacity 0.15s, background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .group-header:hover .group-delete-btn { opacity: 1; }
+    .group-delete-btn:hover { background: #7f1d1d; color: #fca5a5; }
+
+    .group-body {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg);
+      min-height: 60px;
+    }
+    .group-body.collapsed { display: none; }
+    .group-body.drag-over { background: rgba(168,85,247,0.06); outline: 2px dashed var(--accent2); outline-offset: -4px; }
+
+    /* list wrappers */
+    .grouped-list {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+      cursor: pointer;
+      position: relative;
+    }
+    .card:hover { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
+    .card.dragging { opacity: 0.4; cursor: grabbing; }
+    .card-drag-handle {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      cursor: grab;
+      color: var(--border);
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .card:hover .card-drag-handle { color: var(--text2); }
+    .card-inner { padding-left: 14px; }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: 1rem; color: var(--text); word-break: break-all; }
+    .card-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+    .card-body {
+      color: var(--text2);
+      font-size: 0.83rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 80px;
+      overflow: hidden;
+      position: relative;
+    }
+    .card-body::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 24px;
+      background: linear-gradient(transparent, var(--card));
+    }
+    .card-actions { display: flex; gap: 6px; margin-top: 12px; justify-content: flex-end; }
+
+    /* ===== PLOT LIST (vertical) ===== */
+    .plot-group-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 20px;
+      background: var(--bg);
+      min-height: 40px;
+    }
+    .plot-group-body.collapsed { display: none; }
+    .plot-group-body.drag-over { background: rgba(168,85,247,0.06); outline: 2px dashed var(--accent2); outline-offset: -4px; }
+
+    .plot-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 14px 14px 10px;
+      display: flex;
+      gap: 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, opacity 0.15s;
+      position: relative;
+    }
+    .plot-item:hover { border-color: var(--accent2); }
+    .plot-item.dragging { opacity: 0.4; }
+    .plot-drag-handle { cursor: grab; color: var(--border); font-size: 0.85rem; align-self: center; flex-shrink: 0; transition: color 0.15s; }
+    .plot-item:hover .plot-drag-handle { color: var(--text2); }
+    .plot-number { background: var(--bg3); color: var(--accent); font-weight: 700; font-size: 1.1rem; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .plot-content { flex: 1; min-width: 0; }
+    .plot-title { font-weight: 700; margin-bottom: 4px; }
+    .plot-desc { color: var(--text2); font-size: 0.83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .plot-actions { display: flex; gap: 6px; align-self: flex-start; }
+
+    /* ===== NOTE LIST ===== */
+    .note-group-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--bg);
+      min-height: 40px;
+    }
+    .note-group-body.collapsed { display: none; }
+    .note-group-body.drag-over { background: rgba(168,85,247,0.06); outline: 2px dashed var(--accent2); outline-offset: -4px; }
+    .note-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: border-color 0.15s, opacity 0.15s;
+      position: relative;
+    }
+    .note-item:hover { border-color: var(--accent2); }
+    .note-item.dragging { opacity: 0.4; }
+    .note-drag-handle { cursor: grab; color: var(--border); font-size: 0.85rem; align-self: center; flex-shrink: 0; transition: color 0.15s; }
+    .note-item:hover .note-drag-handle { color: var(--text2); }
+    .note-priority { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .note-content { flex: 1; min-width: 0; }
+    .note-text { font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+    .note-meta { color: var(--text2); font-size: 0.75rem; margin-top: 4px; }
+    .note-actions { display: flex; gap: 6px; }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 160px;
+      color: var(--text2);
+      gap: 12px;
+      grid-column: 1 / -1;
+    }
+    .empty-state .icon { font-size: 3rem; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal h2 { font-size: 1.1rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.82rem; color: var(--text2); font-weight: 600; }
+    .form-hint { font-size: 0.75rem; color: var(--text2); margin-top: 2px; }
+    .form-group input, .form-group textarea, .form-group select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent2); }
+    .form-group textarea { min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+    /* ===== DETAIL VIEW ===== */
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 20px;
+    }
+    .detail-overlay.hidden { display: none; }
+    .detail-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .detail-panel h2 { font-size: 1.4rem; color: var(--text); }
+    .detail-field { display: flex; flex-direction: column; gap: 4px; }
+    .detail-field label { font-size: 0.78rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+    .detail-field p {
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: var(--bg2);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .detail-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    /* ===== DRAG GHOST ===== */
+    #drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      background: var(--card2);
+      border: 2px solid var(--accent2);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      color: var(--text);
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: none;
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--success);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      z-index: 2000;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ===== PRIORITY COLORS ===== */
+    .p-high { background: var(--accent); }
+    .p-mid { background: var(--warning); }
+    .p-low { background: var(--text2); }
+
+    /* ===== TIMELINE ===== */
+    .timeline-wrap {
+      overflow-x: auto;
+      flex: 1;
+    }
+    .timeline-lanes {
+      display: flex;
+      flex-direction: column;
+      min-width: max-content;
+    }
+    .timeline-lane {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid var(--border);
+    }
+    .timeline-lane-label {
+      min-width: 120px;
+      max-width: 120px;
+      padding: 12px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      position: sticky;
+      left: 0;
+      z-index: 5;
+    }
+    .timeline-items {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      align-items: center;
+    }
+    .timeline-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 160px;
+      max-width: 200px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s;
+    }
+    .timeline-card:hover { border-color: var(--accent2); }
+    .timeline-card-chapter {
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .timeline-card-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .timeline-card-chars {
+      font-size: 0.75rem;
+      color: var(--accent2);
+    }
+    .timeline-toolbar-info {
+      color: var(--text2);
+      font-size: 0.85rem;
+    }
+
+    /* ===== SEARCH ===== */
+    .search-results-wrap {
+      overflow-y: auto;
+      flex: 1;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .search-section-title {
+      font-size: 0.78rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-section-title:first-child { margin-top: 0; }
+    .search-result-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: border-color 0.15s;
+    }
+    .search-result-item:hover { border-color: var(--accent2); }
+    .search-result-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .search-result-body { flex: 1; min-width: 0; }
+    .search-result-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 3px; }
+    .search-result-snippet { color: var(--text2); font-size: 0.82rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .search-result-meta { color: var(--accent2); font-size: 0.75rem; margin-top: 3px; }
+    .search-highlight { background: rgba(233,69,96,0.25); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+    .search-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 200px; color: var(--text2); gap: 12px; }
+
+    /* ===== DASHBOARD ===== */
+    .dashboard-wrap {
+      overflow-y: auto;
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .dashboard-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .dashboard-subtitle {
+      color: var(--text2);
+      font-size: 0.85rem;
+    }
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .dash-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .dash-stat:hover { border-color: var(--accent2); box-shadow: 0 0 0 1px var(--accent2); }
+    .dash-stat-icon { font-size: 1.6rem; }
+    .dash-stat-count { font-size: 2rem; font-weight: 800; color: var(--accent); line-height: 1; }
+    .dash-stat-label { font-size: 0.8rem; color: var(--text2); }
+    .dash-section-header {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text2);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dash-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .dash-recents {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .dash-recent-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      font-size: 0.88rem;
+    }
+    .dash-recent-item:hover { border-color: var(--accent2); }
+    .dash-recent-icon { font-size: 1rem; flex-shrink: 0; }
+    .dash-recent-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dash-recent-tab { font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
+    .dash-groups {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .dash-group-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      color: var(--text2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .dash-group-chip:hover { background: var(--accent2); color: white; }
+    .dash-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .dash-two-col { grid-template-columns: 1fr; } }
+
+    /* ===== RELATIONS ===== */
+    #relations-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    #relations-canvas:active { cursor: grabbing; }
+    .relation-tooltip {
+      position: fixed;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: var(--text);
+      pointer-events: none;
+      z-index: 500;
+      max-width: 200px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      display: none;
+    }
+  /* ===== PROJECT MANAGER ===== */
+  .project-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 12px;
+    background: var(--bg); border-radius: 8px; border: 1px solid var(--border);
+  }
+  .project-item-active { border-color: var(--accent1); background: rgba(168,85,247,0.08); }
+  .project-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .project-item-title { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .project-item-date { font-size: 0.75rem; color: var(--text2); }
+  .project-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  #proj-badge {
+    background: var(--accent1); color: white; border-radius: 10px;
+    font-size: 0.68rem; padding: 1px 5px; vertical-align: super; margin-left: 1px;
+  }
+
+  /* ===== HAMBURGER BUTTON (hidden on desktop) ===== */
+  .hamburger {
+    display: none;
+    background: none; border: none; color: var(--text);
+    font-size: 1.5rem; cursor: pointer; padding: 4px 8px;
+    border-radius: 6px; flex-shrink: 0;
+  }
+  .hamburger:hover { background: var(--bg3); }
+
+  /* ===== SIDEBAR OVERLAY (hidden on desktop) ===== */
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+  }
+
+  /* ===== HEADER TOOLBAR LABEL ===== */
+  .header-tools { display: flex; gap: 6px; align-items: center; }
+  .header-tools .tool-label { display: inline; }
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    /* --- Hamburger visible --- */
+    .hamburger { display: block; }
+
+    /* --- Header compact --- */
+    header { padding: 8px 12px; gap: 8px; }
+    header h1 { font-size: 1rem; }
+    header h1 span { display: none; }
+    #project-title-input { width: auto; flex: 1; min-width: 0; font-size: 0.85rem; }
+    .header-tools { gap: 3px; flex-shrink: 0; }
+    .header-tools .tool-label { display: none; }
+    .header-tools .btn { padding: 4px 6px; font-size: 0.85rem; }
+
+    /* --- Sidebar as drawer --- */
+    .sidebar {
+      position: fixed;
+      top: 0; left: -260px;
+      width: 240px; height: 100vh;
+      z-index: 200;
+      transition: left 0.25s ease;
+      border-right: 2px solid var(--accent);
+      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-overlay.open { display: block; }
+
+    /* --- Main area full width --- */
+    .app { height: calc(100vh - 49px); }
+    .main { width: 100%; }
+
+    /* --- Toolbar compact --- */
+    .toolbar { padding: 8px 10px; gap: 6px; }
+    .toolbar input[type="text"] { min-width: 100px; font-size: 0.85rem; }
+    .toolbar .btn { padding: 4px 8px; font-size: 0.8rem; }
+
+    /* --- Cards single column --- */
+    .group-body { padding: 10px 12px; gap: 10px; grid-template-columns: 1fr; }
+
+    /* --- Form rows stack --- */
+    .form-row { grid-template-columns: 1fr !important; }
+
+    /* --- Plot/Note items compact --- */
+    .plot-item, .note-item { padding: 10px; gap: 8px; }
+
+    /* --- Scrollable content --- */
+    .scroll-area { padding: 10px 12px; }
+
+    /* --- Modal compact --- */
+    .modal { padding: 16px; }
+    .modal-overlay { padding: 10px; }
+  }
+
+  @media (max-width: 480px) {
+    header h1 { display: none; }
+    #project-title-input { font-size: 0.8rem; }
+    .group-header { padding: 8px 12px; font-size: 0.85rem; }
+    .card { padding: 12px; }
+    .card-header h3 { font-size: 0.95rem; }
+  }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" style="color:var(--accent);font-size:1.2rem;text-decoration:none;margin-right:4px" title="ホームへ戻る">&#8962;</a>
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="メニュー">☰</button>
+  <h1>&#9997;&#65039; <span>Novel</span>Board</h1>
+  <input type="text" id="project-title-input" placeholder="作品タイトルを入力…" />
+  <div class="header-tools">
+    <button class="btn btn-ghost btn-sm" onclick="openProjectModal()" title="プロジェクト管理">📚<span id="proj-badge">1</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="openThemeModal()" title="テーマ変更">🎨</button>
+    <button class="btn btn-ghost btn-sm" onclick="openRenameModal()" title="グループ一括リネーム">🏷️</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportData()" title="エクスポート">💾</button>
+    <label class="btn btn-ghost btn-sm" title="インポート" style="cursor:pointer;margin:0;">
+      📂 <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+    </label>
+    <button class="btn btn-secondary btn-sm" onclick="openAiConsultModal()" title="AIに相談">🤖 <span class="tool-label">AIに相談</span></button>
+  </div>
+</header>
+
+<!-- APP -->
+<div class="app">
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <nav>
+      <div class="nav-item active" data-tab="chars" onclick="switchTab('chars')">
+        <span class="icon">👤</span> キャラクター
+        <span class="badge" id="badge-chars">0</span>
+      </div>
+      <div class="nav-item" data-tab="places" onclick="switchTab('places')">
+        <span class="icon">🗺️</span> 世界観・場所
+        <span class="badge" id="badge-places">0</span>
+      </div>
+      <div class="nav-item" data-tab="plot" onclick="switchTab('plot')">
+        <span class="icon">📖</span> あらすじ
+        <span class="badge" id="badge-plot">0</span>
+      </div>
+      <div class="nav-item" data-tab="terms" onclick="switchTab('terms')">
+        <span class="icon">📚</span> 用語・設定集
+        <span class="badge" id="badge-terms">0</span>
+      </div>
+      <div class="nav-item" data-tab="notes" onclick="switchTab('notes')">
+        <span class="icon">💡</span> ネタメモ
+        <span class="badge" id="badge-notes">0</span>
+      </div>
+      <div class="nav-item" data-tab="timeline" onclick="switchTab('timeline')">
+        <span class="icon">📅</span> タイムライン
+        <span class="badge" id="badge-timeline">0</span>
+      </div>
+      <div class="nav-item" data-tab="search" onclick="switchTab('search')">
+        <span class="icon">🔍</span> 横断検索
+      </div>
+      <div class="nav-item" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="icon">📊</span> ダッシュボード
+      </div>
+      <div class="nav-item" data-tab="relations" onclick="switchTab('relations')">
+        <span class="icon">🔗</span> 関係図
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ===== CHARACTERS ===== -->
+    <div class="tab-content active" id="tab-chars">
+      <div class="toolbar">
+        <input type="text" id="search-chars" placeholder="キャラクターを検索…" oninput="renderChars()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('chars',true)">▼ 全展開</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('chars',false)">▲ 折りたたむ</button>
+        <button class="btn btn-primary" onclick="openModal('char')">＋ 追加</button>
+      </div>
+      <div id="chars-list" class="grouped-list"></div>
+    </div>
+
+    <!-- ===== PLACES ===== -->
+    <div class="tab-content" id="tab-places">
+      <div class="toolbar">
+        <input type="text" id="search-places" placeholder="場所を検索…" oninput="renderPlaces()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('places',true)">▼ 全展開</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('places',false)">▲ 折りたたむ</button>
+        <button class="btn btn-primary" onclick="openModal('place')">＋ 追加</button>
+      </div>
+      <div id="places-list" class="grouped-list"></div>
+    </div>
+
+    <!-- ===== PLOT ===== -->
+    <div class="tab-content" id="tab-plot">
+      <div class="toolbar">
+        <input type="text" id="search-plot" placeholder="章・シーンを検索…" oninput="renderPlot()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('plot',true)">▼ 全展開</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('plot',false)">▲ 折りたたむ</button>
+        <button class="btn btn-primary" onclick="openModal('plot')">＋ 章を追加</button>
+      </div>
+      <div id="plot-list" class="grouped-list"></div>
+    </div>
+
+    <!-- ===== TERMS ===== -->
+    <div class="tab-content" id="tab-terms">
+      <div class="toolbar">
+        <input type="text" id="search-terms" placeholder="用語を検索…" oninput="renderTerms()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('terms',true)">▼ 全展開</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('terms',false)">▲ 折りたたむ</button>
+        <button class="btn btn-primary" onclick="openModal('term')">＋ 追加</button>
+      </div>
+      <div id="terms-list" class="grouped-list"></div>
+    </div>
+
+    <!-- ===== NOTES ===== -->
+    <div class="tab-content" id="tab-notes">
+      <div class="toolbar">
+        <input type="text" id="search-notes" placeholder="メモを検索…" oninput="renderNotes()">
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('notes',true)">▼ 全展開</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAllGroups('notes',false)">▲ 折りたたむ</button>
+        <button class="btn btn-primary" onclick="openModal('note')">＋ メモ追加</button>
+      </div>
+      <div id="notes-list" class="grouped-list"></div>
+    </div>
+
+    <!-- ===== TIMELINE ===== -->
+    <div class="tab-content" id="tab-timeline">
+      <div class="toolbar">
+        <span class="timeline-toolbar-info">グループ別に章の時系列を確認できます。カードをクリックすると詳細を表示します。</span>
+      </div>
+      <div class="timeline-wrap">
+        <div class="timeline-lanes" id="timeline-lanes"></div>
+      </div>
+    </div>
+
+    <!-- ===== SEARCH ===== -->
+    <div class="tab-content" id="tab-search">
+      <div class="toolbar">
+        <input type="text" id="global-search-input" placeholder="すべてのタブを横断検索…" oninput="doGlobalSearch()" style="flex:1;max-width:500px;">
+        <span id="search-result-count" style="color:var(--text2);font-size:0.85rem;white-space:nowrap;"></span>
+      </div>
+      <div id="search-results" class="search-results-wrap"></div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="tab-content" id="tab-dashboard">
+      <div id="dashboard-content" class="dashboard-wrap"></div>
+    </div>
+
+    <!-- ===== RELATIONS ===== -->
+    <div class="tab-content" id="tab-relations">
+      <div class="toolbar">
+        <span style="color:var(--text2);font-size:0.85rem;">キャラクター同士の関係を設定できます。線をクリックで関係を編集。</span>
+        <button class="btn btn-primary btn-sm" onclick="openRelationModal()">＋ 関係を追加</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderRelations()">🔄 再描画</button>
+      </div>
+      <div id="relations-wrap" style="flex:1;overflow:hidden;position:relative;">
+        <canvas id="relations-canvas"></canvas>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- CHARACTER MODAL -->
+<div class="modal-overlay hidden" id="modal-char">
+  <div class="modal">
+    <h2>👤 <span id="modal-char-title">キャラクター追加</span></h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>名前 *</label>
+        <input type="text" id="char-name" placeholder="例: 佐藤 一郎">
+      </div>
+      <div class="form-group">
+        <label>読み仮名</label>
+        <input type="text" id="char-kana" placeholder="例: さとう いちろう">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>役割</label>
+        <select id="char-role">
+          <option value="主人公">主人公</option>
+          <option value="ヒロイン">ヒロイン</option>
+          <option value="仲間">仲間</option>
+          <option value="敵">敵</option>
+          <option value="師匠">師匠</option>
+          <option value="脇役">脇役</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>年齢・属性</label>
+        <input type="text" id="char-age" placeholder="例: 17歳 / 魔法使い">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>グループ（任意）</label>
+      <input type="text" id="char-group" placeholder="例: 魔術学園、主人公側、敵組織…" list="char-group-list">
+      <datalist id="char-group-list"></datalist>
+      <span class="form-hint">グループ名でキャラクターを分類できます。ドラッグで変更も可能です</span>
+    </div>
+    <div class="form-group">
+      <label>外見</label>
+      <textarea id="char-appearance" placeholder="髪の色、目の色、体型、服装など…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>性格</label>
+      <textarea id="char-personality" placeholder="性格の特徴、口癖、癖など…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>背景・経歴</label>
+      <textarea id="char-background" placeholder="出生、過去、動機など…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="char-notes" placeholder="その他メモ、関係性など…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('char')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveChar()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLACE MODAL -->
+<div class="modal-overlay hidden" id="modal-place">
+  <div class="modal">
+    <h2>🗺️ <span id="modal-place-title">場所・世界観 追加</span></h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>名前 *</label>
+        <input type="text" id="place-name" placeholder="例: 王都アルカディア">
+      </div>
+      <div class="form-group">
+        <label>種類</label>
+        <select id="place-type">
+          <option value="都市・街">都市・街</option>
+          <option value="国・地域">国・地域</option>
+          <option value="建物">建物</option>
+          <option value="自然">自然</option>
+          <option value="異世界">異世界</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>グループ（任意）</label>
+      <input type="text" id="place-group" placeholder="例: 西の大陸、ダンジョン、精霊界…" list="place-group-list">
+      <datalist id="place-group-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>説明</label>
+      <textarea id="place-desc" placeholder="場所の雰囲気、特徴、歴史など…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>重要なポイント</label>
+      <textarea id="place-points" placeholder="物語上での役割、特別なルールなど…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="place-notes" placeholder="その他メモ…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('place')">キャンセル</button>
+      <button class="btn btn-primary" onclick="savePlace()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLOT MODAL -->
+<div class="modal-overlay hidden" id="modal-plot">
+  <div class="modal">
+    <h2>📖 <span id="modal-plot-title">章・シーン 追加</span></h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>第何章</label>
+        <input type="number" id="plot-chapter" min="1" placeholder="1">
+      </div>
+      <div class="form-group">
+        <label>タイトル *</label>
+        <input type="text" id="plot-title-input" placeholder="例: 出会いの日">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>グループ（任意）</label>
+      <input type="text" id="plot-group" placeholder="例: 序章、第一部、クライマックス…" list="plot-group-list">
+      <datalist id="plot-group-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>あらすじ</label>
+      <textarea id="plot-desc" style="min-height:120px" placeholder="この章で起こる出来事、ポイント…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>登場キャラクター</label>
+      <input type="text" id="plot-chars" placeholder="例: 主人公, ヒロイン, 悪役">
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="plot-notes" placeholder="伏線、注意点など…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('plot')">キャンセル</button>
+      <button class="btn btn-primary" onclick="savePlot()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- TERM MODAL -->
+<div class="modal-overlay hidden" id="modal-term">
+  <div class="modal">
+    <h2>📚 <span id="modal-term-title">用語・設定 追加</span></h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>用語 *</label>
+        <input type="text" id="term-name" placeholder="例: 魔法陣">
+      </div>
+      <div class="form-group">
+        <label>カテゴリ</label>
+        <select id="term-category">
+          <option value="魔法・スキル">魔法・スキル</option>
+          <option value="組織・勢力">組織・勢力</option>
+          <option value="固有名詞">固有名詞</option>
+          <option value="ルール・法則">ルール・法則</option>
+          <option value="アイテム">アイテム</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>グループ（任意）</label>
+      <input type="text" id="term-group" placeholder="例: 魔法体系、武器、組織名…" list="term-group-list">
+      <datalist id="term-group-list"></datalist>
+    </div>
+    <div class="form-group">
+      <label>説明</label>
+      <textarea id="term-desc" placeholder="用語の意味、仕組み、詳細…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea id="term-notes" placeholder="関連する設定、注意点など…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('term')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveTerm()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay hidden" id="modal-note">
+  <div class="modal">
+    <h2>💡 <span id="modal-note-title">ネタメモ 追加</span></h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>優先度</label>
+        <select id="note-priority">
+          <option value="high">🔴 高（重要アイデア）</option>
+          <option value="mid" selected>🟡 中（気になること）</option>
+          <option value="low">⚪ 低（思いつき）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>グループ（任意）</label>
+        <input type="text" id="note-group" placeholder="例: キャラA関連、伏線…" list="note-group-list">
+        <datalist id="note-group-list"></datalist>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>メモ内容 *</label>
+      <textarea id="note-text" style="min-height:140px" placeholder="思いついたアイデア、伏線のヒント、描きたいシーン…自由に書いてください"></textarea>
+    </div>
+    <div class="form-group">
+      <label>タグ（任意）</label>
+      <input type="text" id="note-tag" placeholder="例: 第3章, キャラA, 伏線">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('note')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI CONSULT MODAL -->
+<div class="modal-overlay hidden" id="modal-ai">
+  <div class="modal" style="max-width:680px;">
+    <h2>🤖 AIに相談</h2>
+    <p style="color:var(--text2);font-size:0.82rem;">相談の種類を選んでテキストを生成 → コピーしてClaudeのチャットに貼り付けてください。</p>
+
+    <div class="ai-consult-tabs">
+      <button class="ai-consult-tab active" data-ai-tab="all"     onclick="switchAiTab('all')">📋 全体まとめ</button>
+      <button class="ai-consult-tab"        data-ai-tab="chars"   onclick="switchAiTab('chars')">👤 キャラ診断</button>
+      <button class="ai-consult-tab"        data-ai-tab="plot"    onclick="switchAiTab('plot')">📖 プロット診断</button>
+      <button class="ai-consult-tab"        data-ai-tab="world"   onclick="switchAiTab('world')">🌍 世界観チェック</button>
+      <button class="ai-consult-tab"        data-ai-tab="custom"  onclick="switchAiTab('custom')">✏️ カスタム</button>
+    </div>
+
+    <div id="ai-consult-body">
+      <div id="ai-tab-custom-question" style="display:none;margin-bottom:10px;">
+        <label style="font-size:0.82rem;color:var(--text2);font-weight:600;">質問・依頼内容</label>
+        <textarea id="ai-custom-question" style="width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:0.85rem;font-family:inherit;resize:vertical;min-height:70px;" placeholder="例: 主人公の動機がちゃんと伝わるか確認してください"></textarea>
+        <button class="btn btn-secondary btn-sm" style="margin-top:6px;" onclick="generateAiText()">🔄 テキストを生成</button>
+      </div>
+      <div class="ai-consult-output" id="ai-consult-output">← タブを選ぶとテキストが生成されます</div>
+      <button class="btn btn-primary ai-consult-copy-btn" onclick="copyAiText()">📋 クリップボードにコピー</button>
+      <p class="ai-consult-note">
+        ① このボタンでコピー　② Claudeのチャット画面を開く　③ 貼り付けて送信<br>
+        ※ データはコピーするだけで外部には送信されません。
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- THEME MODAL -->
+<div class="modal-overlay hidden" id="modal-theme">
+  <div class="modal" style="max-width:520px;">
+    <h2>🎨 カラーテーマ</h2>
+    <div class="theme-grid" id="theme-grid"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('theme')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME MODAL -->
+<div class="modal-overlay hidden" id="modal-rename">
+  <div class="modal" style="max-width:560px;">
+    <h2>🏷️ グループ一括リネーム</h2>
+    <p style="color:var(--text2);font-size:0.83rem;margin-bottom:4px;">右の入力欄に新しいグループ名を入力して「適用」を押してください。空欄のままにすると変更されません。</p>
+    <div class="rename-list" id="rename-list"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('rename')">キャンセル</button>
+      <button class="btn btn-primary" onclick="applyRename()">適用</button>
+    </div>
+  </div>
+</div>
+
+<!-- RELATION MODAL -->
+<div class="modal-overlay hidden" id="modal-relation">
+  <div class="modal">
+    <h2>🔗 <span id="modal-relation-title">関係を追加</span></h2>
+    <div class="form-group">
+      <label>キャラクターA *</label>
+      <select id="relation-char-a"></select>
+    </div>
+    <div class="form-group">
+      <label>関係の種類</label>
+      <input type="text" id="relation-type" placeholder="例: 友人、ライバル、師弟、恋人、家族…" list="relation-type-list">
+      <datalist id="relation-type-list">
+        <option value="友人"><option value="親友"><option value="ライバル">
+        <option value="師匠/弟子"><option value="恋人"><option value="家族">
+        <option value="兄弟"><option value="主従"><option value="敵対">
+        <option value="片思い"><option value="同僚"><option value="知人">
+      </datalist>
+    </div>
+    <div class="form-group">
+      <label>キャラクターB *</label>
+      <select id="relation-char-b"></select>
+    </div>
+    <div class="form-group">
+      <label>メモ（任意）</label>
+      <textarea id="relation-note" placeholder="関係の詳細、背景など…" style="min-height:60px;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('relation')">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveRelation()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay hidden" id="detail-overlay">
+  <div class="detail-panel" id="detail-panel"></div>
+</div>
+
+<!-- DRAG GHOST -->
+<div id="drag-ghost"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+const state = {
+  projectTitle: '',
+  chars: [],
+  places: [],
+  plot: [],
+  terms: [],
+  notes: [],
+  // グループ定義（中身が空でも表示するために独立して保持）
+  groups: { chars: [], places: [], plot: [], terms: [], notes: [] },
+  // キャラクター間の関係
+  relations: [],
+};
+
+// collapsed[tabKey][groupName] = true/false
+const collapsed = { chars: {}, places: {}, plot: {}, terms: {}, notes: {} };
+
+let editingId = { char: null, place: null, plot: null, term: null, note: null };
+let editingRelationId = null;
+
+// ===== DRAG STATE =====
+let drag = {
+  active: false,
+  tab: null,       // 'chars' | 'places' | 'plot' | 'terms' | 'notes'
+  id: null,        // item id being dragged
+  label: '',
+  sourceGroup: '',
+  ghostEl: null,
+  overGroup: null,
+};
+
+// ===== MULTI-PROJECT STORAGE =====
+function getProjects() {
+  try { return JSON.parse(localStorage.getItem('nb_projects') || '[]'); } catch { return []; }
+}
+function saveProjects(list) { localStorage.setItem('nb_projects', JSON.stringify(list)); }
+function getActiveId() { return localStorage.getItem('nb_active') || null; }
+function setActiveId(id) { localStorage.setItem('nb_active', id); }
+function genProjectId() { return 'proj_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function save() {
+  const id = getActiveId();
+  if (!id) return;
+  localStorage.setItem('nb_proj_' + id, JSON.stringify(state));
+  const list = getProjects();
+  const meta = list.find(p => p.id === id);
+  if (meta) {
+    meta.title = state.projectTitle || '（無題）';
+    meta.updatedAt = new Date().toISOString();
+    saveProjects(list);
+  }
+  updateProjBadge();
+}
+
+function applyStateCompat() {
+  if (!state.groups) state.groups = { chars:[], places:[], plot:[], terms:[], notes:[] };
+  if (!Array.isArray(state.relations)) state.relations = [];
+  ['chars','places','plot','terms','notes'].forEach(tab => {
+    if (!Array.isArray(state.groups[tab])) state.groups[tab] = [];
+    state[tab].forEach(item => {
+      if (item.group && !state.groups[tab].includes(item.group)) state.groups[tab].push(item.group);
+    });
+  });
+}
+
+function load() {
+  // 移行処理：旧 'novelboard' キーが存在し nb_projects がまだない場合
+  const oldRaw = localStorage.getItem('novelboard');
+  let list = getProjects();
+  if (oldRaw && list.length === 0) {
+    const id = genProjectId();
+    try {
+      const old = JSON.parse(oldRaw);
+      const title = old.projectTitle || '（移行データ）';
+      list = [{ id, title, updatedAt: new Date().toISOString() }];
+      saveProjects(list);
+      localStorage.setItem('nb_proj_' + id, oldRaw);
+      setActiveId(id);
+    } catch {}
+  }
+  if (list.length === 0) {
+    const id = genProjectId();
+    list = [{ id, title: '新規プロジェクト', updatedAt: new Date().toISOString() }];
+    saveProjects(list);
+    setActiveId(id);
+  }
+  let activeId = getActiveId();
+  if (!list.find(p => p.id === activeId)) { activeId = list[0].id; setActiveId(activeId); }
+  const raw = localStorage.getItem('nb_proj_' + activeId);
+  if (raw) { try { Object.assign(state, JSON.parse(raw)); } catch {} }
+  applyStateCompat();
+  document.getElementById('project-title-input').value = state.projectTitle || '';
+  updateProjBadge();
+}
+
+function updateProjBadge() {
+  const el = document.getElementById('proj-badge');
+  if (el) el.textContent = getProjects().length;
+}
+
+// ===== PROJECT MANAGEMENT =====
+function openProjectModal() {
+  renderProjectList();
+  document.getElementById('modal-projects').classList.remove('hidden');
+}
+function closeProjectModal() {
+  document.getElementById('modal-projects').classList.add('hidden');
+}
+
+function renderProjectList() {
+  const list = getProjects();
+  const activeId = getActiveId();
+  const container = document.getElementById('project-list-items');
+  if (!list.length) {
+    container.innerHTML = '<p style="color:var(--text2);text-align:center;padding:16px;">プロジェクトなし</p>';
+    return;
+  }
+  container.innerHTML = list.map(p => {
+    const isActive = p.id === activeId;
+    const date = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ja-JP') : '';
+    return `<div class="project-item ${isActive ? 'project-item-active' : ''}">
+      <div class="project-item-info">
+        <span class="project-item-title">${esc(p.title || '（無題）')}</span>
+        <span class="project-item-date">${date ? '更新: ' + date : ''}</span>
+      </div>
+      <div class="project-item-actions">
+        ${isActive
+          ? '<span style="font-size:0.78rem;color:var(--accent1);padding:0 6px;">✏️編集中</span>'
+          : `<button class="btn btn-primary btn-sm" onclick="switchProject('${p.id}')">開く</button>`}
+        ${list.length > 1 ? `<button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}')">削除</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchProject(id) {
+  save();
+  setActiveId(id);
+  Object.assign(state, { projectTitle:'', chars:[], places:[], plot:[], terms:[], notes:[], relations:[],
+    groups:{ chars:[], places:[], plot:[], terms:[], notes:[] } });
+  load();
+  relNodes = {};
+  renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+  updateBadges(); renderTimeline();
+  closeProjectModal();
+  showToast('✅ プロジェクトを切り替えました');
+}
+
+function createProject() {
+  const name = prompt('新しい作品名を入力してください', '新規プロジェクト');
+  if (name === null) return;
+  const title = name.trim() || '新規プロジェクト';
+  save();
+  const id = genProjectId();
+  const list = getProjects();
+  list.push({ id, title, updatedAt: new Date().toISOString() });
+  saveProjects(list);
+  setActiveId(id);
+  Object.assign(state, { projectTitle: title, chars:[], places:[], plot:[], terms:[], notes:[], relations:[],
+    groups:{ chars:[], places:[], plot:[], terms:[], notes:[] } });
+  document.getElementById('project-title-input').value = title;
+  save();
+  relNodes = {};
+  renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+  updateBadges(); renderTimeline();
+  closeProjectModal();
+  showToast(`✅「${title}」を作成しました`);
+}
+
+function deleteProject(id) {
+  const list = getProjects();
+  const proj = list.find(p => p.id === id);
+  if (!proj) return;
+  if (!confirm(`「${proj.title || '（無題）'}」を削除しますか？\nこの操作は元に戻せません。`)) return;
+  const newList = list.filter(p => p.id !== id);
+  localStorage.removeItem('nb_proj_' + id);
+  saveProjects(newList);
+  if (getActiveId() === id) {
+    if (newList.length === 0) {
+      const newId = genProjectId();
+      saveProjects([{ id: newId, title: '新規プロジェクト', updatedAt: new Date().toISOString() }]);
+      setActiveId(newId);
+    } else {
+      setActiveId(newList[0].id);
+    }
+    Object.assign(state, { projectTitle:'', chars:[], places:[], plot:[], terms:[], notes:[], relations:[],
+      groups:{ chars:[], places:[], plot:[], terms:[], notes:[] } });
+    load();
+    relNodes = {};
+    renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+    updateBadges();
+  }
+  renderProjectList();
+  updateProjBadge();
+  showToast('削除しました');
+}
+
+// グループ名を登録（重複なし）
+function registerGroup(tab, groupName) {
+  if (!groupName) return;
+  if (!state.groups[tab].includes(groupName)) {
+    state.groups[tab].push(groupName);
+  }
+}
+
+// グループを削除（中のアイテムはグループなしへ）
+function deleteGroup(tab, groupName) {
+  if (!confirm(`グループ「${groupName}」を削除しますか？\n（中のアイテムは「グループなし」に移動します）`)) return;
+  // グループ定義から削除
+  state.groups[tab] = state.groups[tab].filter(g => g !== groupName);
+  // アイテムのgroup を空にする
+  state[tab].forEach(item => {
+    if (item.group === groupName) item.group = '';
+  });
+  save();
+  render(tab);
+  if (tab === 'plot') renderTimeline();
+  showToast(`グループ「${groupName}」を削除しました`);
+}
+
+// ===== PROJECT TITLE =====
+document.getElementById('project-title-input').addEventListener('input', function() {
+  state.projectTitle = this.value;
+  save();
+});
+
+// ===== TAB SWITCH =====
+// ===== MOBILE SIDEBAR =====
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.querySelector('.sidebar-overlay').classList.remove('open');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'timeline') renderTimeline();
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'search') { document.getElementById('global-search-input').focus(); doGlobalSearch(); }
+  if (tab === 'relations') renderRelations();
+  closeSidebar();
+}
+
+// ===== MODAL (relation追加) =====
+function openModal(type, id = null) {
+  editingId[type] = id;
+  document.getElementById(`modal-${type}`).classList.remove('hidden');
+  const isEdit = id !== null;
+  if (type === 'char') {
+    document.getElementById('modal-char-title').textContent = isEdit ? 'キャラクター編集' : 'キャラクター追加';
+    clearForm(['char-name','char-kana','char-age','char-group','char-appearance','char-personality','char-background','char-notes']);
+    document.getElementById('char-role').value = '主人公';
+    if (isEdit) { const c = state.chars.find(x => x.id === id); if (c) { setVals({
+      'char-name': c.name, 'char-kana': c.kana, 'char-role': c.role,
+      'char-age': c.age, 'char-group': c.group, 'char-appearance': c.appearance,
+      'char-personality': c.personality, 'char-background': c.background, 'char-notes': c.notes,
+    }); } }
+    refreshDatalist('chars', 'char-group-list');
+  } else if (type === 'place') {
+    document.getElementById('modal-place-title').textContent = isEdit ? '場所・世界観 編集' : '場所・世界観 追加';
+    clearForm(['place-name','place-group','place-desc','place-points','place-notes']);
+    document.getElementById('place-type').value = '都市・街';
+    if (isEdit) { const p = state.places.find(x => x.id === id); if (p) { setVals({
+      'place-name': p.name, 'place-type': p.type, 'place-group': p.group,
+      'place-desc': p.desc, 'place-points': p.points, 'place-notes': p.notes,
+    }); } }
+    refreshDatalist('places', 'place-group-list');
+  } else if (type === 'plot') {
+    document.getElementById('modal-plot-title').textContent = isEdit ? '章・シーン 編集' : '章・シーン 追加';
+    clearForm(['plot-title-input','plot-group','plot-desc','plot-chars','plot-notes']);
+    document.getElementById('plot-chapter').value = '';
+    if (isEdit) { const p = state.plot.find(x => x.id === id); if (p) { setVals({
+      'plot-chapter': p.chapter, 'plot-title-input': p.title, 'plot-group': p.group,
+      'plot-desc': p.desc, 'plot-chars': p.chars, 'plot-notes': p.notes,
+    }); } }
+    refreshDatalist('plot', 'plot-group-list');
+  } else if (type === 'term') {
+    document.getElementById('modal-term-title').textContent = isEdit ? '用語・設定 編集' : '用語・設定 追加';
+    clearForm(['term-name','term-group','term-desc','term-notes']);
+    document.getElementById('term-category').value = '魔法・スキル';
+    if (isEdit) { const t = state.terms.find(x => x.id === id); if (t) { setVals({
+      'term-name': t.name, 'term-category': t.category, 'term-group': t.group,
+      'term-desc': t.desc, 'term-notes': t.notes,
+    }); } }
+    refreshDatalist('terms', 'term-group-list');
+  } else if (type === 'note') {
+    document.getElementById('modal-note-title').textContent = isEdit ? 'ネタメモ 編集' : 'ネタメモ 追加';
+    clearForm(['note-group','note-text','note-tag']);
+    document.getElementById('note-priority').value = 'mid';
+    if (isEdit) { const n = state.notes.find(x => x.id === id); if (n) { setVals({
+      'note-priority': n.priority, 'note-group': n.group, 'note-text': n.text, 'note-tag': n.tag,
+    }); } }
+    refreshDatalist('notes', 'note-group-list');
+  }
+}
+
+function closeModal(type) {
+  document.getElementById(`modal-${type}`).classList.add('hidden');
+  if (type === 'relation') { editingRelationId = null; }
+  else if (type in editingId) { editingId[type] = null; }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id.replace('modal-', '')); });
+});
+
+// ===== FORM HELPERS =====
+function clearForm(ids) { ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+function setVals(map) { Object.entries(map).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val || ''; }); }
+function gv(id) { return (document.getElementById(id)?.value || '').trim(); }
+
+function refreshDatalist(stateKey, datalistId) {
+  const arr = state[stateKey];
+  const groups = [...new Set(arr.map(x => x.group).filter(Boolean))];
+  document.getElementById(datalistId).innerHTML = groups.map(g => `<option value="${esc(g)}">`).join('');
+}
+
+// ===== UTILS =====
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function updateBadges() {
+  ['chars','places','plot','terms','notes'].forEach(k => {
+    document.getElementById(`badge-${k}`).textContent = state[k].length;
+  });
+  document.getElementById('badge-timeline').textContent = state.plot.length;
+}
+
+// ===== GROUP COLLAPSE =====
+function toggleGroup(tab, groupName) {
+  collapsed[tab][groupName] = !collapsed[tab][groupName];
+  render(tab);
+}
+function toggleAllGroups(tab, expand) {
+  if (expand) {
+    collapsed[tab] = {};
+  } else {
+    const groups = [...new Set(state[tab].map(x => x.group || ''))];
+    groups.forEach(g => { collapsed[tab][g] = true; });
+  }
+  render(tab);
+}
+function render(tab) {
+  if (tab === 'chars') renderChars();
+  else if (tab === 'places') renderPlaces();
+  else if (tab === 'plot') renderPlot();
+  else if (tab === 'terms') renderTerms();
+  else if (tab === 'notes') renderNotes();
+}
+
+// ===== GROUP HEADER CLICK (event delegation) =====
+// Uses data-toggle-tab and data-toggle-group attributes instead of inline onclick
+// Ignores clicks when drag is active to avoid conflicts with drag events
+document.addEventListener('click', function(e) {
+  const header = e.target.closest('.group-header');
+  if (!header) return;
+  if (drag.active) return;
+  const tab = header.dataset.toggleTab;
+  const group = header.dataset.toggleGroup;
+  if (tab !== undefined && group !== undefined) {
+    toggleGroup(tab, group);
+  }
+});
+
+// ===== GROUPED RENDER HELPER =====
+function groupItems(items, tab) {
+  const order = [];
+  const map = {};
+
+  // まずグループ定義から全グループを登録（空でも表示するため）
+  const definedGroups = state.groups[tab] || [];
+  definedGroups.forEach(g => {
+    if (!map[g]) { map[g] = []; order.push(g); }
+  });
+
+  // アイテムをグループに振り分け（定義外のグループも追加）
+  items.forEach(x => {
+    const g = x.group || '';
+    if (!map[g]) { map[g] = []; order.push(g); }
+    map[g].push(x);
+  });
+
+  // グループなし（空文字）は必ず末尾に、定義済みグループは定義順、未定義グループはアルファベット順
+  order.sort((a, b) => {
+    if (!a && b) return 1;
+    if (a && !b) return -1;
+    const ai = definedGroups.indexOf(a);
+    const bi = definedGroups.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b, 'ja');
+  });
+
+  return { order, map };
+}
+
+function groupHeaderHTML(tab, g, count) {
+  const label = g || 'グループなし';
+  const isC = !!collapsed[tab][g];
+  const deleteBtn = g
+    ? `<button class="group-delete-btn" title="グループを削除"
+         onclick="event.stopPropagation();deleteGroup('${esc(tab)}', ${JSON.stringify(g)})">✕</button>`
+    : '';
+  return `
+    <div class="group-header ${isC ? 'collapsed' : ''}"
+         data-toggle-tab="${esc(tab)}"
+         data-toggle-group="${esc(g)}"
+         data-drop-group="${esc(g)}"
+         data-drop-tab="${tab}">
+      <span class="group-chevron">▼</span>
+      <span class="group-name">📁 ${esc(label)}</span>
+      <span class="group-count">${count}件</span>
+      ${deleteBtn}
+    </div>`;
+}
+
+// ===== DRAG & DROP =====
+function initDrag(el, tab, id, label, group) {
+  el.setAttribute('draggable', 'true');
+  el.addEventListener('dragstart', e => {
+    drag.active = true;
+    drag.tab = tab;
+    drag.id = id;
+    drag.label = label;
+    drag.sourceGroup = group;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+
+    const ghost = document.getElementById('drag-ghost');
+    ghost.textContent = '✥ ' + label;
+    ghost.style.display = 'block';
+    ghost.style.left = '-999px';
+    ghost.style.top = '-999px';
+    e.dataTransfer.setDragImage(ghost, 0, 0);
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    drag.active = false;
+    document.getElementById('drag-ghost').style.display = 'none';
+    // clear all drag-over styles
+    document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+  });
+}
+
+function setupDropZones() {
+  // Use event delegation on document
+  document.addEventListener('dragover', e => {
+    if (!drag.active) return;
+    const header = e.target.closest('[data-drop-group]');
+    const body   = e.target.closest('[data-drop-body]');
+    const target = header || body;
+    if (!target) return;
+    const targetTab = target.dataset.dropTab || target.dataset.dropBodyTab;
+    if (targetTab !== drag.tab) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const groupName = header ? header.dataset.dropGroup : body.dataset.dropBody;
+    drag.overGroup = groupName;
+    document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  document.addEventListener('dragleave', e => {
+    const header = e.target.closest('[data-drop-group]');
+    const body   = e.target.closest('[data-drop-body]');
+    if (header) header.classList.remove('drag-over');
+    if (body)   body.classList.remove('drag-over');
+  });
+
+  document.addEventListener('drop', e => {
+    if (!drag.active) return;
+    const header = e.target.closest('[data-drop-group]');
+    const body   = e.target.closest('[data-drop-body]');
+    const target = header || body;
+    if (!target) return;
+    const targetTab = target.dataset.dropTab || target.dataset.dropBodyTab;
+    if (targetTab !== drag.tab) return;
+    e.preventDefault();
+    document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+
+    const newGroup = header ? header.dataset.dropGroup : body.dataset.dropBody;
+    if (newGroup === drag.sourceGroup) return;
+
+    const arr = state[drag.tab];
+    const item = arr.find(x => x.id === drag.id);
+    if (!item) return;
+    item.group = newGroup;
+    // ドロップ先グループを定義に登録（空文字=グループなしは登録不要）
+    if (newGroup) registerGroup(drag.tab, newGroup);
+    save();
+    render(drag.tab);
+    if (drag.tab === 'plot') renderTimeline();
+    showToast(`「${drag.label}」を「${newGroup || 'グループなし'}」に移動しました`);
+  });
+}
+
+// ===== CHARACTERS =====
+function saveChar() {
+  const name = gv('char-name');
+  if (!name) { alert('名前を入力してください'); return; }
+  const obj = {
+    id: editingId.char || uid(),
+    name, kana: gv('char-kana'), role: gv('char-role'), age: gv('char-age'),
+    group: gv('char-group'), appearance: gv('char-appearance'),
+    personality: gv('char-personality'), background: gv('char-background'), notes: gv('char-notes'),
+  };
+  registerGroup('chars', obj.group);
+  upsert(state.chars, obj, editingId.char);
+  save(); closeModal('char'); renderChars(); updateBadges();
+  showToast('キャラクターを保存しました');
+}
+function deleteChar(id) {
+  if (!confirm('このキャラクターを削除しますか？')) return;
+  state.chars = state.chars.filter(x => x.id !== id);
+  save(); renderChars(); updateBadges(); showToast('削除しました');
+}
+function renderChars() {
+  const q = gv('search-chars').toLowerCase();
+  const list = document.getElementById('chars-list');
+  refreshDatalist('chars', 'char-group-list');
+  const items = state.chars.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || (c.kana||'').toLowerCase().includes(q) ||
+    (c.role||'').includes(q) || (c.group||'').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = emptyHTML('👤', q ? '見つかりませんでした' : 'まだキャラクターがいません', !q ? "openModal('char')" : '');
+    return;
+  }
+  const roleColors = { '主人公':'#e94560','ヒロイン':'#ec4899','仲間':'#3b82f6','敵':'#ef4444','師匠':'#f59e0b','脇役':'#6b7280','その他':'#8b5cf6' };
+  const { order, map } = groupItems(items, 'chars');
+  // グループ定義がある or グループが複数ある場合はアコーディオン表示
+  const hasGroups = state.groups.chars.length > 0 || order.some(g => g !== '');
+  const single = !hasGroups && order.length === 1 && order[0] === '';
+  if (single) {
+    list.innerHTML = `<div class="group-body" data-drop-body="" data-drop-body-tab="chars">${items.map(c => charCardHTML(c, roleColors)).join('')}</div>`;
+    items.forEach(c => {
+      const el = list.querySelector(`[data-id="${c.id}"]`);
+      if (el) initDrag(el, 'chars', c.id, c.name, c.group || '');
+    });
+    return;
+  }
+  list.innerHTML = order.map(g => {
+    const isC = !!collapsed.chars[g];
+    return `<div class="group-section">
+      ${groupHeaderHTML('chars', g, map[g].length)}
+      <div class="group-body ${isC ? 'collapsed' : ''}" data-drop-body="${esc(g)}" data-drop-body-tab="chars">
+        ${map[g].map(c => charCardHTML(c, roleColors)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  items.forEach(c => {
+    const el = list.querySelector(`[data-id="${c.id}"]`);
+    if (el) initDrag(el, 'chars', c.id, c.name, c.group || '');
+  });
+}
+function charCardHTML(c, roleColors) {
+  const col = roleColors[c.role] || '#6b7280';
+  return `
+    <div class="card" data-id="${c.id}" onclick="showDetail('chars','${c.id}')">
+      <span class="card-drag-handle" title="ドラッグしてグループ移動">⠿⠿</span>
+      <div class="card-inner">
+        <div class="card-header">
+          <div class="card-title">${esc(c.name)}</div>
+          <span class="card-tag" style="background:${col}22;color:${col}">${esc(c.role)}</span>
+        </div>
+        ${c.kana ? `<div style="color:var(--text2);font-size:0.78rem;margin-bottom:4px">${esc(c.kana)}</div>` : ''}
+        ${c.age ? `<div style="color:var(--text2);font-size:0.82rem;margin-bottom:4px">📌 ${esc(c.age)}</div>` : ''}
+        <div class="card-body">${esc(c.personality || c.appearance || c.background || '（詳細なし）')}</div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('char','${c.id}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteChar('${c.id}')">削除</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ===== PLACES =====
+function savePlace() {
+  const name = gv('place-name');
+  if (!name) { alert('名前を入力してください'); return; }
+  const obj = {
+    id: editingId.place || uid(),
+    name, type: gv('place-type'), group: gv('place-group'),
+    desc: gv('place-desc'), points: gv('place-points'), notes: gv('place-notes'),
+  };
+  registerGroup('places', obj.group);
+  upsert(state.places, obj, editingId.place);
+  save(); closeModal('place'); renderPlaces(); updateBadges();
+  showToast('場所を保存しました');
+}
+function deletePlace(id) {
+  if (!confirm('この場所を削除しますか？')) return;
+  state.places = state.places.filter(x => x.id !== id);
+  save(); renderPlaces(); updateBadges(); showToast('削除しました');
+}
+function renderPlaces() {
+  const q = gv('search-places').toLowerCase();
+  const list = document.getElementById('places-list');
+  refreshDatalist('places', 'place-group-list');
+  const typeIcons = { '都市・街':'🏙️','国・地域':'🌍','建物':'🏛️','自然':'🌲','異世界':'✨','その他':'📍' };
+  const items = state.places.filter(p =>
+    !q || p.name.toLowerCase().includes(q) || (p.type||'').includes(q) || (p.desc||'').toLowerCase().includes(q) || (p.group||'').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = emptyHTML('🗺️', q ? '見つかりませんでした' : 'まだ場所がありません', !q ? "openModal('place')" : '');
+    return;
+  }
+  const cardHTML = p => `
+    <div class="card" data-id="${p.id}" onclick="showDetail('places','${p.id}')">
+      <span class="card-drag-handle" title="ドラッグしてグループ移動">⠿⠿</span>
+      <div class="card-inner">
+        <div class="card-header">
+          <div class="card-title">${typeIcons[p.type]||'📍'} ${esc(p.name)}</div>
+          <span class="card-tag tag-place">${esc(p.type)}</span>
+        </div>
+        <div class="card-body">${esc(p.desc || '（説明なし）')}</div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('place','${p.id}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePlace('${p.id}')">削除</button>
+        </div>
+      </div>
+    </div>`;
+  renderGrouped(list, items, 'places', cardHTML, 'group-body');
+}
+
+// ===== PLOT =====
+function savePlot() {
+  const title = gv('plot-title-input');
+  if (!title) { alert('タイトルを入力してください'); return; }
+  const obj = {
+    id: editingId.plot || uid(),
+    chapter: gv('plot-chapter'), title, group: gv('plot-group'),
+    desc: gv('plot-desc'), chars: gv('plot-chars'), notes: gv('plot-notes'),
+  };
+  registerGroup('plot', obj.group);
+  upsert(state.plot, obj, editingId.plot);
+  save(); closeModal('plot'); renderPlot(); updateBadges(); renderTimeline();
+  showToast('章を保存しました');
+}
+function deletePlot(id) {
+  if (!confirm('この章を削除しますか？')) return;
+  state.plot = state.plot.filter(x => x.id !== id);
+  save(); renderPlot(); updateBadges(); renderTimeline(); showToast('削除しました');
+}
+function renderPlot() {
+  const q = gv('search-plot').toLowerCase();
+  const list = document.getElementById('plot-list');
+  refreshDatalist('plot', 'plot-group-list');
+  const items = [...state.plot]
+    .filter(p => !q || p.title.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q) || (p.group||'').toLowerCase().includes(q))
+    .sort((a, b) => (parseInt(a.chapter)||9999) - (parseInt(b.chapter)||9999));
+  if (!items.length) {
+    list.innerHTML = emptyHTML('📖', q ? '見つかりませんでした' : 'まだ章がありません', !q ? "openModal('plot')" : '');
+    return;
+  }
+  const cardHTML = (p, i) => `
+    <div class="plot-item" data-id="${p.id}" onclick="showDetail('plot','${p.id}')">
+      <span class="plot-drag-handle" title="ドラッグしてグループ移動">⠿⠿</span>
+      <div class="plot-number">${p.chapter || (i+1)}</div>
+      <div class="plot-content">
+        <div class="plot-title">${esc(p.title)}</div>
+        ${p.chars ? `<div style="color:var(--accent2);font-size:0.78rem;margin-bottom:4px">👥 ${esc(p.chars)}</div>` : ''}
+        <div class="plot-desc">${esc(p.desc || '（説明なし）')}</div>
+      </div>
+      <div class="plot-actions">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('plot','${p.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePlot('${p.id}')">削除</button>
+      </div>
+    </div>`;
+  const { order, map } = groupItems(items, 'plot');
+  const hasGroups = state.groups.plot.length > 0 || order.some(g => g !== '');
+  const single = !hasGroups && order.length === 1 && order[0] === '';
+  let idx = 0;
+  if (single) {
+    list.innerHTML = `<div class="plot-group-body" data-drop-body="" data-drop-body-tab="plot">${items.map((p,i) => cardHTML(p,i)).join('')}</div>`;
+  } else {
+    list.innerHTML = order.map(g => {
+      const isC = !!collapsed.plot[g];
+      const html = map[g].map((p,i) => cardHTML(p, idx++)).join('');
+      return `<div class="group-section">
+        ${groupHeaderHTML('plot', g, map[g].length)}
+        <div class="plot-group-body ${isC ? 'collapsed' : ''}" data-drop-body="${esc(g)}" data-drop-body-tab="plot">${html}</div>
+      </div>`;
+    }).join('');
+  }
+  items.forEach(p => {
+    const el = list.querySelector(`[data-id="${p.id}"]`);
+    if (el) initDrag(el, 'plot', p.id, p.title, p.group || '');
+  });
+}
+
+// ===== TERMS =====
+function saveTerm() {
+  const name = gv('term-name');
+  if (!name) { alert('用語を入力してください'); return; }
+  const obj = {
+    id: editingId.term || uid(),
+    name, category: gv('term-category'), group: gv('term-group'),
+    desc: gv('term-desc'), notes: gv('term-notes'),
+  };
+  registerGroup('terms', obj.group);
+  upsert(state.terms, obj, editingId.term);
+  save(); closeModal('term'); renderTerms(); updateBadges();
+  showToast('用語を保存しました');
+}
+function deleteTerm(id) {
+  if (!confirm('この用語を削除しますか？')) return;
+  state.terms = state.terms.filter(x => x.id !== id);
+  save(); renderTerms(); updateBadges(); showToast('削除しました');
+}
+function renderTerms() {
+  const q = gv('search-terms').toLowerCase();
+  const list = document.getElementById('terms-list');
+  refreshDatalist('terms', 'term-group-list');
+  const catColors = {
+    '魔法・スキル':{ bg:'#1e1a3a', fg:'#c084fc' }, '組織・勢力':{ bg:'#1a2a3a', fg:'#60a5fa' },
+    '固有名詞':{ bg:'#1a3a2a', fg:'#34d399' }, 'ルール・法則':{ bg:'#3a2a1a', fg:'#fb923c' },
+    'アイテム':{ bg:'#2a3a1a', fg:'#a3e635' }, 'その他':{ bg:'#2a2a2a', fg:'#94a3b8' },
+  };
+  const items = state.terms.filter(t =>
+    !q || t.name.toLowerCase().includes(q) || (t.category||'').includes(q) || (t.desc||'').toLowerCase().includes(q) || (t.group||'').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = emptyHTML('📚', q ? '見つかりませんでした' : 'まだ用語がありません', !q ? "openModal('term')" : '');
+    return;
+  }
+  const cardHTML = t => {
+    const col = catColors[t.category] || catColors['その他'];
+    return `
+      <div class="card" data-id="${t.id}" onclick="showDetail('terms','${t.id}')">
+        <span class="card-drag-handle" title="ドラッグしてグループ移動">⠿⠿</span>
+        <div class="card-inner">
+          <div class="card-header">
+            <div class="card-title">${esc(t.name)}</div>
+            <span class="card-tag" style="background:${col.bg};color:${col.fg}">${esc(t.category)}</span>
+          </div>
+          <div class="card-body">${esc(t.desc || '（説明なし）')}</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('term','${t.id}')">編集</button>
+            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteTerm('${t.id}')">削除</button>
+          </div>
+        </div>
+      </div>`;
+  };
+  renderGrouped(list, items, 'terms', cardHTML, 'group-body');
+}
+
+// ===== NOTES =====
+function saveNote() {
+  const text = gv('note-text');
+  if (!text) { alert('内容を入力してください'); return; }
+  const existNote = editingId.note ? state.notes.find(n => n.id === editingId.note) : null;
+  const obj = {
+    id: editingId.note || uid(),
+    priority: gv('note-priority') || 'mid',
+    group: gv('note-group'),
+    text,
+    tag: gv('note-tag'),
+    createdAt: existNote ? existNote.createdAt : Date.now(),
+  };
+  registerGroup('notes', obj.group);
+  if (editingId.note) {
+    upsert(state.notes, obj, editingId.note);
+  } else {
+    state.notes.unshift(obj);
+  }
+  save(); closeModal('note'); renderNotes(); updateBadges();
+  showToast('メモを保存しました');
+}
+function deleteNote(id) {
+  if (!confirm('このメモを削除しますか？')) return;
+  state.notes = state.notes.filter(x => x.id !== id);
+  save(); renderNotes(); updateBadges(); showToast('削除しました');
+}
+function renderNotes() {
+  const q = gv('search-notes').toLowerCase();
+  const list = document.getElementById('notes-list');
+  refreshDatalist('notes', 'note-group-list');
+  const pMap = { high:'p-high', mid:'p-mid', low:'p-low' };
+  const pLabel = { high:'🔴 高', mid:'🟡 中', low:'⚪ 低' };
+  const items = state.notes.filter(n =>
+    !q || n.text.toLowerCase().includes(q) || (n.tag||'').toLowerCase().includes(q) || (n.group||'').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = emptyHTML('💡', q ? '見つかりませんでした' : 'まだメモがありません', !q ? "openModal('note')" : '');
+    return;
+  }
+  const cardHTML = n => `
+    <div class="note-item" data-id="${n.id}">
+      <span class="note-drag-handle" title="ドラッグしてグループ移動">⠿⠿</span>
+      <div class="note-priority ${pMap[n.priority]||'p-low'}"></div>
+      <div class="note-content" onclick="showDetail('notes','${n.id}')">
+        <div class="note-text">${esc(n.text)}</div>
+        <div class="note-meta">
+          ${n.tag ? `🏷️ ${esc(n.tag)} · ` : ''}${pLabel[n.priority]||''}
+          ${n.createdAt ? ` · ${new Date(n.createdAt).toLocaleDateString('ja-JP')}` : ''}
+        </div>
+      </div>
+      <div class="note-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openModal('note','${n.id}')">編集</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteNote('${n.id}')">削除</button>
+      </div>
+    </div>`;
+  const { order, map } = groupItems(items, 'notes');
+  const hasGroups = state.groups.notes.length > 0 || order.some(g => g !== '');
+  const single = !hasGroups && order.length === 1 && order[0] === '';
+  if (single) {
+    list.innerHTML = `<div class="note-group-body" data-drop-body="" data-drop-body-tab="notes">${items.map(cardHTML).join('')}</div>`;
+  } else {
+    list.innerHTML = order.map(g => {
+      const isC = !!collapsed.notes[g];
+      return `<div class="group-section">
+        ${groupHeaderHTML('notes', g, map[g].length)}
+        <div class="note-group-body ${isC ? 'collapsed' : ''}" data-drop-body="${esc(g)}" data-drop-body-tab="notes">${map[g].map(cardHTML).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  items.forEach(n => {
+    const el = list.querySelector(`[data-id="${n.id}"]`);
+    if (el) initDrag(el, 'notes', n.id, n.text.slice(0,30), n.group || '');
+  });
+}
+
+// ===== TIMELINE =====
+function renderTimeline() {
+  const lanes = document.getElementById('timeline-lanes');
+  if (!lanes) return;
+
+  if (!state.plot.length) {
+    lanes.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text2);font-size:0.9rem;padding:20px;">
+      あらすじに章を追加するとタイムラインに表示されます
+    </div>`;
+    return;
+  }
+
+  // sort: group name asc (empty last), then chapter number asc
+  const sorted = [...state.plot].sort((a, b) => {
+    const ga = a.group || '';
+    const gb = b.group || '';
+    if (ga !== gb) {
+      if (!ga && gb) return 1;
+      if (ga && !gb) return -1;
+      return ga.localeCompare(gb, 'ja');
+    }
+    return (parseInt(a.chapter) || 9999) - (parseInt(b.chapter) || 9999);
+  });
+
+  // group into lanes
+  const laneOrder = [];
+  const laneMap = {};
+  sorted.forEach(p => {
+    const g = p.group || '';
+    if (!laneMap[g]) { laneMap[g] = []; laneOrder.push(g); }
+    laneMap[g].push(p);
+  });
+
+  lanes.innerHTML = laneOrder.map(g => {
+    const label = g || 'グループなし';
+    const cards = laneMap[g].map(p => `
+      <div class="timeline-card" onclick="showDetail('plot','${esc(p.id)}')">
+        <div class="timeline-card-chapter">${p.chapter ? '第' + esc(p.chapter) + '章' : '章番号なし'}</div>
+        <div class="timeline-card-title">${esc(p.title)}</div>
+        ${p.chars ? `<div class="timeline-card-chars">👥 ${esc(p.chars)}</div>` : ''}
+      </div>`).join('');
+    return `
+      <div class="timeline-lane">
+        <div class="timeline-lane-label">${esc(label)}</div>
+        <div class="timeline-items">${cards}</div>
+      </div>`;
+  }).join('');
+}
+
+// ===== GENERIC GROUPED CARD RENDER =====
+function renderGrouped(list, items, tab, cardHTML, bodyClass) {
+  const { order, map } = groupItems(items, tab);
+  const hasGroups = (state.groups[tab] || []).length > 0 || order.some(g => g !== '');
+  const single = !hasGroups && order.length === 1 && order[0] === '';
+  if (single) {
+    list.innerHTML = `<div class="${bodyClass}" data-drop-body="" data-drop-body-tab="${tab}">${items.map(cardHTML).join('')}</div>`;
+  } else {
+    list.innerHTML = order.map(g => {
+      const isC = !!collapsed[tab][g];
+      return `<div class="group-section">
+        ${groupHeaderHTML(tab, g, map[g].length)}
+        <div class="${bodyClass} ${isC ? 'collapsed' : ''}" data-drop-body="${esc(g)}" data-drop-body-tab="${tab}">${map[g].map(cardHTML).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  items.forEach(item => {
+    const el = list.querySelector(`[data-id="${item.id}"]`);
+    if (el) initDrag(el, tab, item.id, item.name || item.title || item.text || '', item.group || '');
+  });
+}
+
+// ===== DETAIL VIEW =====
+const detailDefs = {
+  chars: {
+    icon: '👤',
+    fields: c => [['役割',c.role],['グループ',c.group],['読み仮名',c.kana],['年齢・属性',c.age],['外見',c.appearance],['性格',c.personality],['背景・経歴',c.background],['メモ',c.notes]],
+    editType: 'char',
+  },
+  places: {
+    icon: '🗺️',
+    fields: p => [['種類',p.type],['グループ',p.group],['説明',p.desc],['重要なポイント',p.points],['メモ',p.notes]],
+    editType: 'place',
+  },
+  plot: {
+    icon: '📖',
+    titleKey: 'title',
+    fields: p => [['第何章',p.chapter],['グループ',p.group],['あらすじ',p.desc],['登場キャラクター',p.chars],['メモ・伏線',p.notes]],
+    editType: 'plot',
+  },
+  terms: {
+    icon: '📚',
+    fields: t => [['カテゴリ',t.category],['グループ',t.group],['説明',t.desc],['メモ',t.notes]],
+    editType: 'term',
+  },
+  notes: {
+    icon: '💡',
+    titleKey: 'text',
+    fields: n => [['優先度',{high:'🔴 高',mid:'🟡 中',low:'⚪ 低'}[n.priority]],['グループ',n.group],['タグ',n.tag]],
+    editType: 'note',
+    shortTitle: true,
+  },
+};
+
+function showDetail(tab, id) {
+  const def = detailDefs[tab];
+  const item = state[tab].find(x => x.id === id);
+  if (!item) return;
+  const panel = document.getElementById('detail-panel');
+  const titleVal = item[def.titleKey || 'name'] || '';
+  const displayTitle = def.shortTitle ? titleVal.slice(0,40) + (titleVal.length > 40 ? '…' : '') : titleVal;
+  const fields = def.fields(item).filter(([,v]) => v);
+  panel.innerHTML = `
+    <h2>${def.icon} ${esc(displayTitle)}</h2>
+    ${fields.map(([l,v]) => `<div class="detail-field"><label>${esc(l)}</label><p>${esc(v)}</p></div>`).join('')}
+    <div class="detail-footer">
+      <button class="btn btn-ghost" onclick="closeDetail()">閉じる</button>
+      <button class="btn btn-primary" onclick="closeDetail();openModal('${def.editType}','${id}')">編集</button>
+    </div>`;
+  document.getElementById('detail-overlay').classList.remove('hidden');
+}
+function closeDetail() { document.getElementById('detail-overlay').classList.add('hidden'); }
+document.getElementById('detail-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeDetail(); });
+
+// ===== HELPERS =====
+function upsert(arr, obj, editId) {
+  if (editId) { const i = arr.findIndex(x => x.id === editId); if (i !== -1) arr[i] = obj; }
+  else arr.push(obj);
+}
+function emptyHTML(icon, msg, btnFn) {
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-height:200px;color:var(--text2);gap:12px;padding:20px;text-align:center;">
+    <div style="font-size:3rem">${icon}</div>
+    <p style="font-size:0.9rem">${msg}</p>
+    ${btnFn ? `<button class="btn btn-primary" onclick="${btnFn}">＋ 追加する</button>` : ''}
+  </div>`;
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const wrap = document.getElementById('dashboard-content');
+  const total = state.chars.length + state.places.length + state.plot.length + state.terms.length + state.notes.length;
+  const title = state.projectTitle || '（タイトル未設定）';
+
+  // 最近追加されたアイテム（createdAt or id の辞書順で近似）
+  const allItems = [
+    ...state.chars.map(x => ({ tab:'chars', icon:'👤', name: x.name, id: x.id })),
+    ...state.places.map(x => ({ tab:'places', icon:'🗺️', name: x.name, id: x.id })),
+    ...state.plot.map(x => ({ tab:'plot', icon:'📖', name: x.title, id: x.id })),
+    ...state.terms.map(x => ({ tab:'terms', icon:'📚', name: x.name, id: x.id })),
+    ...state.notes.map(x => ({ tab:'notes', icon:'💡', name: x.text.slice(0,40), id: x.id })),
+  ];
+  const recents = [...allItems].reverse().slice(0, 8);
+
+  // 全グループ一覧
+  const allGroups = [];
+  const tabLabels = { chars:'キャラクター', places:'場所', plot:'あらすじ', terms:'用語', notes:'メモ' };
+  ['chars','places','plot','terms','notes'].forEach(t => {
+    state.groups[t].forEach(g => {
+      if (g) allGroups.push({ tab: t, name: g, label: tabLabels[t] });
+    });
+    state[t].forEach(x => {
+      if (x.group && !allGroups.find(a => a.tab === t && a.name === x.group)) {
+        allGroups.push({ tab: t, name: x.group, label: tabLabels[t] });
+      }
+    });
+  });
+
+  // 高優先メモ
+  const highNotes = state.notes.filter(n => n.priority === 'high').slice(0, 5);
+
+  // 未グループアイテム数
+  const ungrouped = ['chars','places','plot','terms','notes'].reduce((s, t) => s + state[t].filter(x => !x.group).length, 0);
+
+  wrap.innerHTML = `
+    <div>
+      <div class="dashboard-title">📊 ${esc(title)}</div>
+      <div class="dashboard-subtitle">作品データのサマリーです</div>
+    </div>
+
+    <div>
+      <div class="dash-section-header">📈 データ数</div>
+      <div class="dash-stats">
+        <div class="dash-stat" onclick="switchTab('chars')">
+          <span class="dash-stat-icon">👤</span>
+          <span class="dash-stat-count">${state.chars.length}</span>
+          <span class="dash-stat-label">キャラクター</span>
+        </div>
+        <div class="dash-stat" onclick="switchTab('places')">
+          <span class="dash-stat-icon">🗺️</span>
+          <span class="dash-stat-count">${state.places.length}</span>
+          <span class="dash-stat-label">場所・世界観</span>
+        </div>
+        <div class="dash-stat" onclick="switchTab('plot')">
+          <span class="dash-stat-icon">📖</span>
+          <span class="dash-stat-count">${state.plot.length}</span>
+          <span class="dash-stat-label">あらすじ</span>
+        </div>
+        <div class="dash-stat" onclick="switchTab('terms')">
+          <span class="dash-stat-icon">📚</span>
+          <span class="dash-stat-count">${state.terms.length}</span>
+          <span class="dash-stat-label">用語・設定</span>
+        </div>
+        <div class="dash-stat" onclick="switchTab('notes')">
+          <span class="dash-stat-icon">💡</span>
+          <span class="dash-stat-count">${state.notes.length}</span>
+          <span class="dash-stat-label">ネタメモ</span>
+        </div>
+        <div class="dash-stat" onclick="switchTab('relations')">
+          <span class="dash-stat-icon">🔗</span>
+          <span class="dash-stat-count">${state.relations.length}</span>
+          <span class="dash-stat-label">キャラ関係</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-two-col">
+      <div>
+        <div class="dash-section-header">🕐 最近のアイテム</div>
+        <div class="dash-recents">
+          ${recents.length ? recents.map(r => `
+            <div class="dash-recent-item" onclick="switchTab('${r.tab}');showDetail('${r.tab}','${r.id}')">
+              <span class="dash-recent-icon">${r.icon}</span>
+              <span class="dash-recent-name">${esc(r.name)}</span>
+              <span class="dash-recent-tab">${tabLabels[r.tab]}</span>
+            </div>`).join('') : '<div style="color:var(--text2);font-size:0.85rem;">まだデータがありません</div>'}
+        </div>
+      </div>
+      <div>
+        <div class="dash-section-header">🔴 重要メモ</div>
+        <div class="dash-recents">
+          ${highNotes.length ? highNotes.map(n => `
+            <div class="dash-recent-item" onclick="switchTab('notes');showDetail('notes','${n.id}')">
+              <span class="dash-recent-icon">🔴</span>
+              <span class="dash-recent-name">${esc(n.text.slice(0,40))}</span>
+            </div>`).join('') : '<div style="color:var(--text2);font-size:0.85rem;">高優先メモはありません</div>'}
+        </div>
+      </div>
+    </div>
+
+    ${allGroups.length ? `
+    <div>
+      <div class="dash-section-header">📁 グループ一覧（${allGroups.length}件）</div>
+      <div class="dash-groups">
+        ${allGroups.map(g => `
+          <span class="dash-group-chip" onclick="switchTab('${g.tab}')" title="${g.label}">
+            ${esc(g.name)} <span style="opacity:0.6;font-size:0.7rem;">${g.label}</span>
+          </span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div>
+      <div class="dash-section-header">ℹ️ データ状況</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:0.85rem;">
+          <span style="color:var(--text2);">総アイテム数</span><br>
+          <strong style="font-size:1.2rem;">${total}</strong> 件
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:0.85rem;">
+          <span style="color:var(--text2);">グループ未設定</span><br>
+          <strong style="font-size:1.2rem;">${ungrouped}</strong> 件
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:0.85rem;">
+          <span style="color:var(--text2);">グループ総数</span><br>
+          <strong style="font-size:1.2rem;">${allGroups.length}</strong> 個
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===== GLOBAL SEARCH =====
+function doGlobalSearch() {
+  const q = (document.getElementById('global-search-input').value || '').trim().toLowerCase();
+  const wrap = document.getElementById('search-results');
+  const countEl = document.getElementById('search-result-count');
+
+  if (!q) {
+    wrap.innerHTML = `<div class="search-empty"><div style="font-size:2.5rem;">🔍</div><p>キーワードを入力してください</p></div>`;
+    countEl.textContent = '';
+    return;
+  }
+
+  const tabDefs = [
+    { key:'chars', icon:'👤', label:'キャラクター', editType:'char',
+      getTitle: x => x.name,
+      getSnippet: x => [x.kana,x.role,x.age,x.personality,x.appearance,x.background,x.notes].filter(Boolean).join(' / '),
+      getMeta: x => x.group ? `📁 ${x.group}` : '' },
+    { key:'places', icon:'🗺️', label:'場所・世界観', editType:'place',
+      getTitle: x => x.name,
+      getSnippet: x => [x.type, x.desc, x.points, x.notes].filter(Boolean).join(' / '),
+      getMeta: x => x.group ? `📁 ${x.group}` : '' },
+    { key:'plot', icon:'📖', label:'あらすじ', editType:'plot',
+      getTitle: x => (x.chapter ? `第${x.chapter}章 ` : '') + x.title,
+      getSnippet: x => [x.desc, x.chars, x.notes].filter(Boolean).join(' / '),
+      getMeta: x => x.group ? `📁 ${x.group}` : '' },
+    { key:'terms', icon:'📚', label:'用語・設定', editType:'term',
+      getTitle: x => x.name,
+      getSnippet: x => [x.category, x.desc, x.notes].filter(Boolean).join(' / '),
+      getMeta: x => x.group ? `📁 ${x.group}` : '' },
+    { key:'notes', icon:'💡', label:'ネタメモ', editType:'note',
+      getTitle: x => x.text.slice(0,50),
+      getSnippet: x => [x.tag].filter(Boolean).join(' / '),
+      getMeta: x => (x.group ? `📁 ${x.group} · ` : '') + ({high:'🔴高',mid:'🟡中',low:'⚪低'}[x.priority]||'') },
+  ];
+
+  function highlight(text, q) {
+    if (!text) return '';
+    const escaped = esc(text);
+    const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    return escaped.replace(re, m => `<span class="search-highlight">${m}</span>`);
+  }
+
+  let totalCount = 0;
+  let html = '';
+
+  tabDefs.forEach(def => {
+    const matched = state[def.key].filter(x => {
+      const all = [def.getTitle(x), def.getSnippet(x), def.getMeta(x)].join(' ').toLowerCase();
+      return all.includes(q);
+    });
+    if (!matched.length) return;
+    totalCount += matched.length;
+    html += `<div class="search-section-title">${def.icon} ${def.label} (${matched.length}件)</div>`;
+    matched.forEach(x => {
+      const title = def.getTitle(x);
+      const snippet = def.getSnippet(x).slice(0, 100);
+      const meta = def.getMeta(x);
+      html += `<div class="search-result-item" onclick="switchTab('${def.key}');showDetail('${def.key}','${x.id}')">
+        <span class="search-result-icon">${def.icon}</span>
+        <div class="search-result-body">
+          <div class="search-result-title">${highlight(title, q)}</div>
+          ${snippet ? `<div class="search-result-snippet">${highlight(snippet, q)}</div>` : ''}
+          ${meta ? `<div class="search-result-meta">${esc(meta)}</div>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+
+  if (!totalCount) {
+    wrap.innerHTML = `<div class="search-empty"><div style="font-size:2.5rem;">😶</div><p>「${esc(q)}」に一致する項目はありません</p></div>`;
+    countEl.textContent = '';
+  } else {
+    wrap.innerHTML = html;
+    countEl.textContent = `${totalCount}件ヒット`;
+  }
+}
+
+// ===== RELATIONS =====
+// ノードの位置（canvas上）
+let relNodes = {};   // { charId: { x, y, vx, vy } }
+let relPan = { x: 0, y: 0 };
+let relScale = 1;
+let relDragNode = null;
+let relDragOffset = { x: 0, y: 0 };
+let relAnimFrame = null;
+let relTooltip = null;
+
+function openRelationModal(id = null) {
+  editingRelationId = id;
+  document.getElementById('modal-relation-title').textContent = id ? '関係を編集' : '関係を追加';
+  // populate char selects
+  const opts = state.chars.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  document.getElementById('relation-char-a').innerHTML = opts;
+  document.getElementById('relation-char-b').innerHTML = opts;
+  // clear
+  document.getElementById('relation-type').value = '';
+  document.getElementById('relation-note').value = '';
+  if (id) {
+    const r = state.relations.find(x => x.id === id);
+    if (r) {
+      document.getElementById('relation-char-a').value = r.charA;
+      document.getElementById('relation-type').value = r.type || '';
+      document.getElementById('relation-char-b').value = r.charB;
+      document.getElementById('relation-note').value = r.note || '';
+    }
+  }
+  document.getElementById('modal-relation').classList.remove('hidden');
+}
+
+function saveRelation() {
+  const charA = document.getElementById('relation-char-a').value;
+  const charB = document.getElementById('relation-char-b').value;
+  if (!charA || !charB) { alert('キャラクターを両方選んでください'); return; }
+  if (charA === charB) { alert('同じキャラクターは選べません'); return; }
+  const obj = {
+    id: editingRelationId || uid(),
+    charA,
+    charB,
+    type: document.getElementById('relation-type').value.trim(),
+    note: document.getElementById('relation-note').value.trim(),
+  };
+  if (editingRelationId) {
+    const i = state.relations.findIndex(x => x.id === editingRelationId);
+    if (i !== -1) state.relations[i] = obj;
+  } else {
+    state.relations.push(obj);
+  }
+  save();
+  closeModal('relation');
+  renderRelations();
+  renderDashboard();
+  showToast('関係を保存しました');
+}
+
+function deleteRelation(id) {
+  if (!confirm('この関係を削除しますか？')) return;
+  state.relations = state.relations.filter(x => x.id !== id);
+  save();
+  renderRelations();
+  showToast('削除しました');
+}
+
+function renderRelations() {
+  const wrap = document.getElementById('relations-wrap');
+  if (!wrap) return;
+  const canvas = document.getElementById('relations-canvas');
+
+  // キャラなし
+  if (state.chars.length === 0) {
+    canvas.style.display = 'none';
+    wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text2);font-size:0.9rem;">キャラクタータブでキャラクターを追加してください</div>`;
+    return;
+  }
+  canvas.style.display = 'block';
+  if (!wrap.contains(canvas)) wrap.appendChild(canvas);
+
+  // canvasサイズ設定
+  const W = wrap.clientWidth || 800;
+  const H = wrap.clientHeight || 500;
+  canvas.width = W;
+  canvas.height = H;
+
+  // ノード初期配置（初回のみ）
+  state.chars.forEach((c, i) => {
+    if (!relNodes[c.id]) {
+      const angle = (2 * Math.PI * i) / state.chars.length;
+      const r = Math.min(W, H) * 0.32;
+      relNodes[c.id] = {
+        x: W / 2 + r * Math.cos(angle),
+        y: H / 2 + r * Math.sin(angle),
+        vx: 0, vy: 0,
+      };
+    }
+  });
+  // 不要なノードを削除
+  const ids = new Set(state.chars.map(c => c.id));
+  Object.keys(relNodes).forEach(k => { if (!ids.has(k)) delete relNodes[k]; });
+
+  drawRelations(canvas, W, H);
+}
+
+function drawRelations(canvas, W, H) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const NODE_R = 36;
+  const roleColors = { '主人公':'#e94560','ヒロイン':'#ec4899','仲間':'#3b82f6','敵':'#ef4444','師匠':'#f59e0b','脇役':'#6b7280','その他':'#8b5cf6' };
+
+  // エッジ描画
+  state.relations.forEach(r => {
+    const a = relNodes[r.charA];
+    const b = relNodes[r.charB];
+    if (!a || !b) return;
+    ctx.save();
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    // ラベル
+    if (r.type) {
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      ctx.globalAlpha = 1;
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = '#e2e8f0';
+      const tw = ctx.measureText(r.type).width;
+      ctx.fillStyle = 'rgba(15,52,96,0.85)';
+      ctx.fillRect(mx - tw/2 - 4, my - 9, tw + 8, 18);
+      ctx.fillStyle = '#c084fc';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(r.type, mx, my);
+    }
+    ctx.restore();
+  });
+
+  // ノード描画
+  state.chars.forEach(c => {
+    const n = relNodes[c.id];
+    if (!n) return;
+    const col = roleColors[c.role] || '#6b7280';
+    ctx.save();
+    // 外枠
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, NODE_R, 0, Math.PI * 2);
+    ctx.fillStyle = '#1e2a3a';
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // 名前
+    ctx.font = 'bold 12px "Segoe UI","Hiragino Sans","Yu Gothic",sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const name = c.name.length > 5 ? c.name.slice(0,5)+'…' : c.name;
+    ctx.fillText(name, n.x, n.y);
+    // 役割ラベル
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = col;
+    ctx.fillText(c.role || '', n.x, n.y + NODE_R + 12);
+    ctx.restore();
+  });
+}
+
+// Canvas インタラクション（スクリプトはbody末尾なのでDOMは既に存在）
+function initRelationsCanvas() {
+  // tooltip要素
+  relTooltip = document.createElement('div');
+  relTooltip.className = 'relation-tooltip';
+  document.body.appendChild(relTooltip);
+
+  const canvas = document.getElementById('relations-canvas');
+  if (!canvas) return;
+
+  const NODE_R = 36;
+
+  function getNodeAt(x, y) {
+    return state.chars.find(c => {
+      const n = relNodes[c.id];
+      if (!n) return false;
+      return Math.hypot(n.x - x, n.y - y) <= NODE_R;
+    });
+  }
+  function getEdgeAt(x, y) {
+    return state.relations.find(r => {
+      const a = relNodes[r.charA];
+      const b = relNodes[r.charB];
+      if (!a || !b) return false;
+      // 線分との距離
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len === 0) return false;
+      const t = Math.max(0, Math.min(1, ((x-a.x)*dx + (y-a.y)*dy) / (len*len)));
+      const px = a.x + t*dx - x;
+      const py = a.y + t*dy - y;
+      return Math.hypot(px, py) < 10;
+    });
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const node = getNodeAt(x, y);
+    if (node) {
+      relDragNode = node.id;
+      relDragOffset.x = relNodes[node.id].x - x;
+      relDragOffset.y = relNodes[node.id].y - y;
+    }
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    if (relDragNode) {
+      relNodes[relDragNode].x = x + relDragOffset.x;
+      relNodes[relDragNode].y = y + relDragOffset.y;
+      drawRelations(canvas, canvas.width, canvas.height);
+      return;
+    }
+    // hover: edge tooltip
+    const edge = getEdgeAt(x, y);
+    if (edge) {
+      const cA = state.chars.find(c => c.id === edge.charA);
+      const cB = state.chars.find(c => c.id === edge.charB);
+      relTooltip.innerHTML = `<strong>${esc(cA?.name||'')} ↔ ${esc(cB?.name||'')}</strong>${edge.type ? `<br>${esc(edge.type)}` : ''}${edge.note ? `<br><span style="color:var(--text2)">${esc(edge.note)}</span>` : ''}`;
+      relTooltip.style.display = 'block';
+      relTooltip.style.left = (e.clientX + 12) + 'px';
+      relTooltip.style.top = (e.clientY - 10) + 'px';
+      canvas.style.cursor = 'pointer';
+    } else {
+      relTooltip.style.display = 'none';
+      const node = getNodeAt(x, y);
+      canvas.style.cursor = node ? 'grab' : 'default';
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => { relDragNode = null; });
+  canvas.addEventListener('mouseleave', () => {
+    relDragNode = null;
+    relTooltip.style.display = 'none';
+  });
+
+  canvas.addEventListener('click', e => {
+    if (relDragNode) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const edge = getEdgeAt(x, y);
+    if (edge) {
+      // 関係の編集/削除メニュー
+      const cA = state.chars.find(c => c.id === edge.charA);
+      const cB = state.chars.find(c => c.id === edge.charB);
+      const msg = `関係: ${cA?.name||'?'} ↔ ${cB?.name||'?'}\n種類: ${edge.type||'（なし）'}\nメモ: ${edge.note||'（なし）'}\n\n編集しますか？（キャンセルで削除メニュー）`;
+      if (confirm(msg)) {
+        openRelationModal(edge.id);
+      } else {
+        if (confirm(`「${cA?.name||'?'} ↔ ${cB?.name||'?'}」の関係を削除しますか？`)) {
+          deleteRelation(edge.id);
+        }
+      }
+    }
+  });
+
+  // タッチ対応（ドラッグ）
+  canvas.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = t.clientX - rect.left, y = t.clientY - rect.top;
+    const node = getNodeAt(x, y);
+    if (node) {
+      relDragNode = node.id;
+      relDragOffset.x = relNodes[node.id].x - x;
+      relDragOffset.y = relNodes[node.id].y - y;
+      e.preventDefault();
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    if (!relDragNode) return;
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = t.clientX - rect.left, y = t.clientY - rect.top;
+    relNodes[relDragNode].x = x + relDragOffset.x;
+    relNodes[relDragNode].y = y + relDragOffset.y;
+    drawRelations(canvas, canvas.width, canvas.height);
+    e.preventDefault();
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { relDragNode = null; });
+}
+
+// ===== AI CONSULT =====
+let currentAiTab = 'all';
+
+function openAiConsultModal() {
+  currentAiTab = 'all';
+  switchAiTab('all');
+  document.getElementById('modal-ai').classList.remove('hidden');
+}
+
+function switchAiTab(tab) {
+  currentAiTab = tab;
+  document.querySelectorAll('.ai-consult-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.aiTab === tab);
+  });
+  document.getElementById('ai-tab-custom-question').style.display = tab === 'custom' ? 'block' : 'none';
+  if (tab !== 'custom') generateAiText();
+}
+
+function generateAiText() {
+  const title = state.projectTitle || '（タイトル未設定）';
+  let text = '';
+
+  if (currentAiTab === 'all') {
+    text = buildAllSummary(title);
+  } else if (currentAiTab === 'chars') {
+    text = buildCharConsult(title);
+  } else if (currentAiTab === 'plot') {
+    text = buildPlotConsult(title);
+  } else if (currentAiTab === 'world') {
+    text = buildWorldConsult(title);
+  } else if (currentAiTab === 'custom') {
+    const q = (document.getElementById('ai-custom-question').value || '').trim();
+    text = buildCustomConsult(title, q);
+  }
+
+  document.getElementById('ai-consult-output').textContent = text;
+}
+
+function buildAllSummary(title) {
+  const lines = [];
+  lines.push(`以下は私が執筆中の小説「${title}」の設定データです。`);
+  lines.push(`全体を読んで、気になる点・改善できそうな点・矛盾などがあれば教えてください。\n`);
+
+  // キャラ
+  if (state.chars.length) {
+    lines.push(`【キャラクター（${state.chars.length}人）】`);
+    state.chars.forEach(c => {
+      let line = `・${c.name}（${c.role}）`;
+      if (c.age) line += `　${c.age}`;
+      if (c.group) line += `　[${c.group}]`;
+      if (c.personality) line += `\n　性格: ${c.personality.slice(0, 80)}`;
+      if (c.background) line += `\n　背景: ${c.background.slice(0, 80)}`;
+      lines.push(line);
+    });
+    lines.push('');
+  }
+
+  // 関係
+  if (state.relations.length) {
+    lines.push(`【キャラクター関係（${state.relations.length}件）】`);
+    state.relations.forEach(r => {
+      const a = state.chars.find(c => c.id === r.charA)?.name || '?';
+      const b = state.chars.find(c => c.id === r.charB)?.name || '?';
+      let line = `・${a} ↔ ${b}`;
+      if (r.type) line += `（${r.type}）`;
+      if (r.note) line += `　${r.note.slice(0, 60)}`;
+      lines.push(line);
+    });
+    lines.push('');
+  }
+
+  // プロット
+  if (state.plot.length) {
+    const sorted = [...state.plot].sort((a, b) => (parseInt(a.chapter)||9999) - (parseInt(b.chapter)||9999));
+    lines.push(`【あらすじ（${sorted.length}章）】`);
+    sorted.forEach(p => {
+      let line = `・${p.chapter ? `第${p.chapter}章` : '章番号なし'}「${p.title}」`;
+      if (p.group) line += `　[${p.group}]`;
+      if (p.desc) line += `\n　${p.desc.slice(0, 100)}`;
+      if (p.chars) line += `\n　登場: ${p.chars}`;
+      lines.push(line);
+    });
+    lines.push('');
+  }
+
+  // 場所
+  if (state.places.length) {
+    lines.push(`【場所・世界観（${state.places.length}件）】`);
+    state.places.forEach(p => {
+      let line = `・${p.name}（${p.type}）`;
+      if (p.group) line += `　[${p.group}]`;
+      if (p.desc) line += `\n　${p.desc.slice(0, 80)}`;
+      lines.push(line);
+    });
+    lines.push('');
+  }
+
+  // 用語
+  if (state.terms.length) {
+    lines.push(`【用語・設定（${state.terms.length}件）】`);
+    state.terms.forEach(t => {
+      let line = `・${t.name}（${t.category}）`;
+      if (t.group) line += `　[${t.group}]`;
+      if (t.desc) line += `　${t.desc.slice(0, 60)}`;
+      lines.push(line);
+    });
+    lines.push('');
+  }
+
+  // 高優先メモ
+  const highNotes = state.notes.filter(n => n.priority === 'high');
+  if (highNotes.length) {
+    lines.push(`【重要メモ（${highNotes.length}件）】`);
+    highNotes.forEach(n => {
+      lines.push(`・${n.text.slice(0, 100)}`);
+    });
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function buildCharConsult(title) {
+  const lines = [];
+  lines.push(`小説「${title}」のキャラクター設定を以下に記載します。`);
+  lines.push(`キャラクターの魅力・動機の明確さ・関係性のバランスについてアドバイスをください。また設定の矛盾や補強できる点があれば指摘してください。\n`);
+
+  if (!state.chars.length) {
+    lines.push('（キャラクターデータがありません）');
+    return lines.join('\n');
+  }
+
+  state.chars.forEach((c, i) => {
+    lines.push(`■ キャラクター${i+1}：${c.name}`);
+    if (c.kana)         lines.push(`  読み: ${c.kana}`);
+    if (c.role)         lines.push(`  役割: ${c.role}`);
+    if (c.age)          lines.push(`  年齢・属性: ${c.age}`);
+    if (c.group)        lines.push(`  所属グループ: ${c.group}`);
+    if (c.appearance)   lines.push(`  外見: ${c.appearance}`);
+    if (c.personality)  lines.push(`  性格: ${c.personality}`);
+    if (c.background)   lines.push(`  背景・経歴: ${c.background}`);
+    if (c.notes)        lines.push(`  メモ: ${c.notes}`);
+    lines.push('');
+  });
+
+  if (state.relations.length) {
+    lines.push('■ キャラクター関係');
+    state.relations.forEach(r => {
+      const a = state.chars.find(c => c.id === r.charA)?.name || '?';
+      const b = state.chars.find(c => c.id === r.charB)?.name || '?';
+      let line = `  ${a} ↔ ${b}`;
+      if (r.type) line += `（${r.type}）`;
+      if (r.note) line += `：${r.note}`;
+      lines.push(line);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+function buildPlotConsult(title) {
+  const lines = [];
+  lines.push(`小説「${title}」のプロット（あらすじ）を以下に記載します。`);
+  lines.push(`ストーリーの流れ・テンポ・伏線・盛り上がりのバランスについてアドバイスをください。気になる穴や改善点があれば具体的に教えてください。\n`);
+
+  if (!state.plot.length) {
+    lines.push('（プロットデータがありません）');
+    return lines.join('\n');
+  }
+
+  const sorted = [...state.plot].sort((a, b) => (parseInt(a.chapter)||9999) - (parseInt(b.chapter)||9999));
+  sorted.forEach(p => {
+    lines.push(`■ ${p.chapter ? `第${p.chapter}章` : '章番号なし'}「${p.title}」${p.group ? `　[${p.group}]` : ''}`);
+    if (p.desc)  lines.push(`  あらすじ: ${p.desc}`);
+    if (p.chars) lines.push(`  登場キャラ: ${p.chars}`);
+    if (p.notes) lines.push(`  メモ・伏線: ${p.notes}`);
+    lines.push('');
+  });
+
+  // 高優先メモ
+  const highNotes = state.notes.filter(n => n.priority === 'high');
+  if (highNotes.length) {
+    lines.push('■ 重要メモ（プロットに関係するかもしれない未整理アイデア）');
+    highNotes.forEach(n => lines.push(`  ・${n.text}`));
+  }
+
+  return lines.join('\n');
+}
+
+function buildWorldConsult(title) {
+  const lines = [];
+  lines.push(`小説「${title}」の世界観・場所・用語設定を以下に記載します。`);
+  lines.push(`世界観の一貫性・設定の面白さ・説明不足な点についてアドバイスをください。\n`);
+
+  if (state.places.length) {
+    lines.push('【場所・世界観】');
+    state.places.forEach(p => {
+      lines.push(`■ ${p.name}（${p.type}）${p.group ? `　[${p.group}]` : ''}`);
+      if (p.desc)   lines.push(`  説明: ${p.desc}`);
+      if (p.points) lines.push(`  重要ポイント: ${p.points}`);
+      if (p.notes)  lines.push(`  メモ: ${p.notes}`);
+      lines.push('');
+    });
+  } else {
+    lines.push('（場所データがありません）\n');
+  }
+
+  if (state.terms.length) {
+    lines.push('【用語・設定】');
+    state.terms.forEach(t => {
+      lines.push(`■ ${t.name}（${t.category}）${t.group ? `　[${t.group}]` : ''}`);
+      if (t.desc)  lines.push(`  説明: ${t.desc}`);
+      if (t.notes) lines.push(`  メモ: ${t.notes}`);
+      lines.push('');
+    });
+  } else {
+    lines.push('（用語データがありません）');
+  }
+
+  return lines.join('\n');
+}
+
+function buildCustomConsult(title, question) {
+  const lines = [];
+  lines.push(`小説「${title}」について相談します。`);
+  if (question) {
+    lines.push(`\n【質問・依頼】\n${question}\n`);
+  } else {
+    lines.push(`\n【質問・依頼】\n（ここに質問を入力してください）\n`);
+  }
+  lines.push('【作品データ】');
+  lines.push(buildAllSummary(title).split('\n').slice(2).join('\n')); // 冒頭の依頼文を除いて追加
+  return lines.join('\n');
+}
+
+async function copyAiText() {
+  const text = document.getElementById('ai-consult-output').textContent;
+  if (!text || text === '← タブを選ぶとテキストが生成されます') {
+    showToast('⚠️ 先にタブを選んでテキストを生成してください');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ クリップボードにコピーしました！Claudeに貼り付けてください');
+  } catch {
+    // フォールバック
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ コピーしました！Claudeに貼り付けてください');
+  }
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const title = (state.projectTitle || 'novelboard').replace(/[\\/:*?"<>|]/g, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `${title}_${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📁 データをエクスポートしました');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      // 最低限のバリデーション
+      if (typeof imported !== 'object' || imported === null) throw new Error('invalid');
+      const keys = ['chars','places','plot','terms','notes'];
+      const hasAny = keys.some(k => Array.isArray(imported[k]));
+      if (!hasAny) throw new Error('no data');
+      // モーダルで追記／上書きを選択させる
+      showImportChoiceModal(imported);
+    } catch (err) {
+      alert('インポートに失敗しました。正しいNovelBoardの.jsonファイルを選んでください。');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ===== THEME =====
+const THEMES = [
+  { id: 'default',  label: '🌙 ダークブルー', cls: '',              sidebar:'#16213e', main:'#1a1a2e', card:'#1e2a3a', accent:'#e94560', accent2:'#a855f7' },
+  { id: 'forest',   label: '🌿 フォレスト',   cls: 'theme-forest',  sidebar:'#122718', main:'#0d1f12', card:'#152b1c', accent:'#4ade80', accent2:'#86efac' },
+  { id: 'ocean',    label: '🌊 オーシャン',   cls: 'theme-ocean',   sidebar:'#102035', main:'#0c1929', card:'#132236', accent:'#38bdf8', accent2:'#7dd3fc' },
+  { id: 'sunset',   label: '🌇 サンセット',   cls: 'theme-sunset',  sidebar:'#2a1508', main:'#1f1006', card:'#2c1a0a', accent:'#fb923c', accent2:'#f59e0b' },
+  { id: 'light',    label: '☀️ ライト',       cls: 'theme-light',   sidebar:'#f1f5f9', main:'#f8fafc', card:'#ffffff', accent:'#e11d48', accent2:'#7c3aed' },
+  { id: 'mono',     label: '⬛ モノクロ',     cls: 'theme-mono',    sidebar:'#111111', main:'#0a0a0a', card:'#141414', accent:'#d4d4d4', accent2:'#a3a3a3' },
+];
+
+let currentTheme = localStorage.getItem('nb_theme') || 'default';
+
+function applyTheme(id) {
+  const theme = THEMES.find(t => t.id === id) || THEMES[0];
+  // body のクラスを全テーマ削除してから適用
+  THEMES.forEach(t => { if (t.cls) document.body.classList.remove(t.cls); });
+  if (theme.cls) document.body.classList.add(theme.cls);
+  currentTheme = id;
+  localStorage.setItem('nb_theme', id);
+  // グリッドの選択状態を更新
+  document.querySelectorAll('.theme-card').forEach(el => {
+    el.classList.toggle('selected', el.dataset.themeId === id);
+  });
+}
+
+function openThemeModal() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = THEMES.map(t => `
+    <div class="theme-card ${t.id === currentTheme ? 'selected' : ''}" data-theme-id="${t.id}" onclick="applyTheme('${t.id}')">
+      <div class="theme-preview">
+        <div class="theme-preview-sidebar" style="background:${t.sidebar};"></div>
+        <div class="theme-preview-main" style="background:${t.main};">
+          <div class="theme-preview-card" style="background:${t.card};"></div>
+          <div class="theme-preview-card" style="background:${t.card};width:70%;"></div>
+          <div class="theme-preview-accent" style="background:${t.accent};"></div>
+        </div>
+      </div>
+      <div class="theme-label" style="background:${t.sidebar};color:${t.accent};">${t.label}</div>
+    </div>
+  `).join('');
+  document.getElementById('modal-theme').classList.remove('hidden');
+}
+
+// ===== GROUP RENAME =====
+function openRenameModal() {
+  const tabLabels = { chars:'👤 キャラ', places:'🗺️ 場所', plot:'📖 あらすじ', terms:'📚 用語', notes:'💡 メモ' };
+  const list = document.getElementById('rename-list');
+
+  // 全グループを列挙（定義済み + アイテムのgroup）
+  const rows = [];
+  ['chars','places','plot','terms','notes'].forEach(t => {
+    const groups = new Set([
+      ...state.groups[t],
+      ...state[t].map(x => x.group).filter(Boolean),
+    ]);
+    groups.forEach(g => rows.push({ tab: t, name: g }));
+  });
+
+  if (!rows.length) {
+    list.innerHTML = '<div style="color:var(--text2);font-size:0.88rem;padding:12px 0;">グループがまだありません</div>';
+  } else {
+    list.innerHTML = rows.map((r, i) => `
+      <div class="rename-row">
+        <span class="rename-tab-badge">${tabLabels[r.tab]}</span>
+        <span style="font-size:0.88rem;min-width:80px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.name)}">
+          ${esc(r.name)}
+        </span>
+        <span class="rename-arrow">→</span>
+        <input class="rename-input"
+               data-rename-idx="${i}"
+               data-rename-tab="${r.tab}"
+               data-rename-old="${esc(r.name)}"
+               placeholder="新しい名前（空欄=変更なし）">
+      </div>`).join('');
+  }
+  // rowsをグローバルに保持（applyRenameで使用）
+  window._renameRows = rows;
+  document.getElementById('modal-rename').classList.remove('hidden');
+}
+
+function applyRename() {
+  const inputs = document.querySelectorAll('.rename-input');
+  let changed = 0;
+  inputs.forEach(input => {
+    const tab = input.dataset.renameTab;
+    const oldName = input.getAttribute('data-rename-old');
+    const newName = input.value.trim();
+    if (!newName || newName === oldName) return;
+    // state.groups のリネーム
+    const gi = state.groups[tab].indexOf(oldName);
+    if (gi !== -1) state.groups[tab][gi] = newName;
+    else if (newName) state.groups[tab].push(newName);
+    // アイテムのグループをリネーム
+    state[tab].forEach(item => {
+      if (item.group === oldName) item.group = newName;
+    });
+    changed++;
+  });
+  if (changed === 0) { closeModal('rename'); return; }
+  save();
+  // 全タブ再描画
+  renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+  renderTimeline();
+  closeModal('rename');
+  showToast(`✅ ${changed}件のグループ名を変更しました`);
+}
+
+// ===== INIT =====
+load();
+applyTheme(currentTheme);
+setupDropZones();
+renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+updateBadges();
+initRelationsCanvas();
+
+// ===== IMPORT CHOICE MODAL =====
+let _pendingImport = null;
+
+function showImportChoiceModal(imported) {
+  _pendingImport = imported;
+  const title = imported.projectTitle || '（タイトルなし）';
+  const counts = ['chars','places','plot','terms','notes']
+    .map(k => Array.isArray(imported[k]) ? imported[k].length : 0)
+    .reduce((a, b) => a + b, 0);
+  document.getElementById('import-choice-desc').textContent =
+    `「${title}」― データ ${counts} 件`;
+  document.getElementById('modal-import-choice').classList.remove('hidden');
+}
+
+function doImport(mode) {
+  document.getElementById('modal-import-choice').classList.add('hidden');
+  const imported = _pendingImport;
+  _pendingImport = null;
+  if (!imported) return;
+
+  const tabs = ['chars','places','plot','terms','notes'];
+
+  if (mode === 'replace') {
+    Object.assign(state, {
+      projectTitle: imported.projectTitle || state.projectTitle,
+      chars:     Array.isArray(imported.chars)     ? imported.chars     : [],
+      places:    Array.isArray(imported.places)    ? imported.places    : [],
+      plot:      Array.isArray(imported.plot)       ? imported.plot      : [],
+      terms:     Array.isArray(imported.terms)     ? imported.terms     : [],
+      notes:     Array.isArray(imported.notes)     ? imported.notes     : [],
+      relations: Array.isArray(imported.relations) ? imported.relations : [],
+      groups:    imported.groups || { chars:[], places:[], plot:[], terms:[], notes:[] },
+    });
+  } else {
+    // 追記モード：IDが重複しないものだけ追加
+    tabs.forEach(tab => {
+      if (!Array.isArray(imported[tab])) return;
+      const existingIds = new Set(state[tab].map(x => x.id));
+      imported[tab].forEach(item => {
+        if (!existingIds.has(item.id)) state[tab].push(item);
+      });
+    });
+    // relationsも追記
+    if (Array.isArray(imported.relations)) {
+      const existingRelIds = new Set(state.relations.map(x => x.id));
+      imported.relations.forEach(r => {
+        if (!existingRelIds.has(r.id)) state.relations.push(r);
+      });
+    }
+    // groupsをマージ
+    if (imported.groups) {
+      tabs.forEach(tab => {
+        if (Array.isArray(imported.groups[tab])) {
+          imported.groups[tab].forEach(g => {
+            if (!state.groups[tab].includes(g)) state.groups[tab].push(g);
+          });
+        }
+      });
+    }
+  }
+
+  // groups の後方互換
+  tabs.forEach(t => {
+    if (!Array.isArray(state.groups[t])) state.groups[t] = [];
+    state[t].forEach(item => {
+      if (item.group && !state.groups[t].includes(item.group)) state.groups[t].push(item.group);
+    });
+  });
+
+  document.getElementById('project-title-input').value = state.projectTitle;
+  save();
+  relNodes = {};
+  renderChars(); renderPlaces(); renderPlot(); renderTerms(); renderNotes();
+  updateBadges();
+  const modeLabel = mode === 'replace' ? '上書き' : '追記';
+  showToast(`✅ ${modeLabel}インポートが完了しました`);
+}
+</script>
+
+<!-- ===== PROJECT MANAGER MODAL ===== -->
+<div class="modal-overlay hidden" id="modal-projects">
+  <div class="modal" style="max-width:480px;gap:14px;">
+    <h2>📚 プロジェクト管理</h2>
+    <div id="project-list-items" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;padding-right:4px;"></div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary" onclick="createProject()" style="flex:1;padding:10px;">＋ 新規プロジェクト</button>
+      <button class="btn btn-ghost" onclick="closeProjectModal()" style="padding:10px 18px;">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IMPORT CHOICE MODAL ===== -->
+<div class="modal-overlay hidden" id="modal-import-choice">
+  <div class="modal" style="max-width:400px;gap:14px;">
+    <h2>📂 インポート方法を選択</h2>
+    <p id="import-choice-desc" style="font-size:0.9rem;color:var(--text2);padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);"></p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" onclick="doImport('merge')" style="padding:12px;font-size:0.95rem;">
+        ➕ 追記する（既存データを保持）
+      </button>
+      <button class="btn" onclick="doImport('replace')" style="padding:12px;font-size:0.95rem;background:var(--bg3);">
+        🔄 上書きする（既存データを削除）
+      </button>
+      <button class="btn btn-danger" onclick="document.getElementById('modal-import-choice').classList.add('hidden');_pendingImport=null;" style="padding:10px;font-size:0.88rem;">
+        キャンセル
+      </button>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text2);line-height:1.6;">
+      ※ 追記：同じIDのデータは無視され、新しいデータだけが追加されます。<br>
+      ※ 上書き：現在のすべてのデータが削除されて置き換えられます。
+    </p>
+  </div>
+</div>
+
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>
