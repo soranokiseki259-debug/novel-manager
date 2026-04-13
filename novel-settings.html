@@ -948,6 +948,7 @@
   <button class="hamburger" onclick="toggleSidebar()" aria-label="メニュー">☰</button>
   <h1>&#9997;&#65039; <span>Novel</span>Board</h1>
   <input type="text" id="project-title-input" placeholder="作品タイトルを入力…" />
+  <div class="header-spacer" style="flex:1"></div>
   <div class="header-tools">
     <button class="btn btn-ghost btn-sm" onclick="openProjectModal()" title="プロジェクト管理">📚<span id="proj-badge">1</span></button>
     <button class="btn btn-ghost btn-sm" onclick="openThemeModal()" title="テーマ変更">🎨</button>
@@ -1471,6 +1472,8 @@ function save() {
     meta.updatedAt = new Date().toISOString();
     saveProjects(list);
   }
+  // Cloud sync
+  if (typeof syncSettingsProject === 'function') syncSettingsProject(id, state);
   updateProjBadge();
 }
 
@@ -3423,6 +3426,7 @@ function doImport(mode) {
   </div>
 </div>
 
+<script src="sync.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>

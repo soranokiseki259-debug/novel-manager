@@ -672,6 +672,8 @@ function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     showSaveIndicator();
+    // Cloud sync
+    if (typeof syncEditorData === 'function') syncEditorData(state);
   } catch (e) {
     console.error('Save failed:', e);
   }
@@ -1391,6 +1393,7 @@ function init() {
 
 init();
 </script>
+<script src="sync.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>

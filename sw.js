@@ -5,7 +5,8 @@ const ASSETS = [
   './novel-settings.html',
   './novel-editor.html',
   './icon.svg',
-  './manifest.json'
+  './manifest.json',
+  './sync.js'
 ];
 
 // Install: cache all assets
