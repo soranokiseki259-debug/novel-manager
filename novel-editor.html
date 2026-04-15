@@ -533,6 +533,7 @@
         <button class="toolbar-btn cleanup" onclick="cleanupText()">空白整形</button>
         <button class="toolbar-btn novel-fmt" onclick="novelFormat()">小説整形</button>
         <button class="toolbar-btn" onclick="showStats()">文字数</button>
+        <button class="toolbar-btn" id="ttsBtn" onclick="toggleTTS()">&#128266; 読み上げ</button>
       </div>
       <div class="editor-container" id="editorContainer">
         <div class="empty-state" id="emptyState">
@@ -617,7 +618,9 @@ function openModal(title, bodyHtml, buttons) {
     btn.onclick = () => { closeModal(); if (b.action) b.action(); };
     btnsEl.appendChild(btn);
   });
-  document.getElementById('modalOverlay').classList.add('open');
+  const _overlay = document.getElementById('modalOverlay');
+  _overlay.style.display = '';
+  _overlay.classList.add('open');
   const inp = document.querySelector('#modalBody .modal-input');
   if (inp) setTimeout(() => inp.focus(), 50);
 }
@@ -1255,6 +1258,196 @@ function copyEpisodeText() {
     document.execCommand('copy');
     toast('本文をコピーしました');
   });
+}
+
+/* ================================================================
+   TEXT-TO-SPEECH (読み上げ)
+================================================================ */
+let _ttsUtterance = null;
+let _ttsPlaying = false;
+let _ttsPaused = false;
+let _ttsRate = 1.0;
+
+function toggleTTS() {
+  if (_ttsPlaying) {
+    stopTTS();
+    return;
+  }
+  showTTSModal();
+}
+
+function showTTSModal() {
+  const textarea = document.getElementById('editorTextarea');
+  const selected = textarea.selectionStart !== textarea.selectionEnd
+    ? textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+    : '';
+  const fullText = textarea.value;
+
+  if (!fullText.trim()) {
+    toast('読み上げるテキストがありません', 'warn');
+    return;
+  }
+
+  const ep = findEpisode(state.activeEpisodeId);
+  const epTitle = ep ? ep.title : '';
+  const targetText = selected || fullText;
+  const charCount = targetText.replace(/[\s\u3000]/g, '').length;
+
+  let html = '<div style="font-size:0.88rem;line-height:1.8;">';
+  html += '<div style="margin-bottom:10px;color:var(--text2);">';
+  html += selected ? '選択範囲を読み上げます' : '全文を読み上げます';
+  html += ' (' + charCount.toLocaleString() + '文字)</div>';
+
+  // Speed control
+  html += '<div style="margin-bottom:14px;">';
+  html += '<label style="display:block;margin-bottom:6px;font-weight:600;">速度</label>';
+  html += '<div style="display:flex;align-items:center;gap:10px;">';
+  html += '<span style="font-size:0.75rem;color:var(--text2);">遅い</span>';
+  html += '<input type="range" id="ttsSpeed" min="0.5" max="2.0" step="0.1" value="' + _ttsRate + '" ';
+  html += 'style="flex:1;accent-color:var(--accent);" oninput="document.getElementById(\'ttsSpeedVal\').textContent=this.value+\'x\'">';
+  html += '<span style="font-size:0.75rem;color:var(--text2);">速い</span>';
+  html += '<span id="ttsSpeedVal" style="min-width:32px;text-align:center;font-weight:600;">' + _ttsRate + 'x</span>';
+  html += '</div></div>';
+
+  // Playback controls
+  html += '<div id="ttsControls" style="display:flex;gap:8px;justify-content:center;margin-top:8px;">';
+  html += '<button class="toolbar-btn" onclick="startTTS()" id="ttsPlayBtn" style="padding:8px 20px;font-size:0.9rem;">&#9654; 再生</button>';
+  html += '<button class="toolbar-btn" onclick="pauseResumeTTS()" id="ttsPauseBtn" style="padding:8px 16px;display:none;">&#10074;&#10074; 一時停止</button>';
+  html += '<button class="toolbar-btn" onclick="stopTTS()" id="ttsStopBtn" style="padding:8px 16px;display:none;">&#9632; 停止</button>';
+  html += '</div>';
+
+  html += '<div id="ttsStatus" style="text-align:center;margin-top:10px;font-size:0.78rem;color:var(--text2);"></div>';
+  html += '</div>';
+
+  // Store target text for playback
+  window._ttsTargetText = targetText;
+
+  openModal('&#128266; 読み上げ' + (epTitle ? ' - ' + escHtml(epTitle) : ''), html, [{ label: '閉じる', action: () => stopTTS() }]);
+}
+
+function startTTS() {
+  if (!window._ttsTargetText) return;
+  speechSynthesis.cancel(); // Clear any previous
+
+  _ttsRate = parseFloat(document.getElementById('ttsSpeed')?.value || 1.0);
+
+  const text = window._ttsTargetText;
+
+  // Split into chunks (SpeechSynthesis has limits on long text)
+  const chunks = splitTextForTTS(text);
+  let currentChunk = 0;
+
+  function speakChunk() {
+    if (currentChunk >= chunks.length) {
+      onTTSEnd();
+      return;
+    }
+
+    _ttsUtterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
+    _ttsUtterance.lang = 'ja-JP';
+    _ttsUtterance.rate = _ttsRate;
+
+    // Try to find a Japanese voice
+    const voices = speechSynthesis.getVoices();
+    const jaVoice = voices.find(v => v.lang.startsWith('ja'));
+    if (jaVoice) _ttsUtterance.voice = jaVoice;
+
+    _ttsUtterance.onend = () => {
+      currentChunk++;
+      speakChunk();
+    };
+
+    _ttsUtterance.onerror = (e) => {
+      if (e.error !== 'canceled') {
+        console.warn('TTS error:', e);
+        onTTSEnd();
+      }
+    };
+
+    const status = document.getElementById('ttsStatus');
+    if (status) {
+      if (chunks.length > 1) {
+        status.textContent = '読み上げ中… (' + (currentChunk + 1) + '/' + chunks.length + ')';
+      } else {
+        status.textContent = '読み上げ中…';
+      }
+    }
+
+    speechSynthesis.speak(_ttsUtterance);
+  }
+
+  _ttsPlaying = true;
+  _ttsPaused = false;
+  updateTTSButtons();
+  speakChunk();
+}
+
+function splitTextForTTS(text) {
+  // Split by paragraphs, keep chunks under ~200 chars for stability
+  const paragraphs = text.split(/\n+/);
+  const chunks = [];
+  let current = '';
+
+  for (const p of paragraphs) {
+    if (!p.trim()) continue;
+    if (current.length + p.length > 200 && current.length > 0) {
+      chunks.push(current.trim());
+      current = '';
+    }
+    current += (current ? '\n' : '') + p;
+  }
+  if (current.trim()) chunks.push(current.trim());
+  if (chunks.length === 0) chunks.push(text);
+
+  return chunks;
+}
+
+function pauseResumeTTS() {
+  if (_ttsPaused) {
+    speechSynthesis.resume();
+    _ttsPaused = false;
+  } else {
+    speechSynthesis.pause();
+    _ttsPaused = true;
+  }
+  updateTTSButtons();
+}
+
+function stopTTS() {
+  speechSynthesis.cancel();
+  onTTSEnd();
+}
+
+function onTTSEnd() {
+  _ttsPlaying = false;
+  _ttsPaused = false;
+  _ttsUtterance = null;
+  updateTTSButtons();
+  const btn = document.getElementById('ttsBtn');
+  if (btn) btn.innerHTML = '&#128266; 読み上げ';
+  const status = document.getElementById('ttsStatus');
+  if (status) status.textContent = '';
+}
+
+function updateTTSButtons() {
+  const playBtn = document.getElementById('ttsPlayBtn');
+  const pauseBtn = document.getElementById('ttsPauseBtn');
+  const stopBtn = document.getElementById('ttsStopBtn');
+  const ttsBtn = document.getElementById('ttsBtn');
+
+  if (playBtn) playBtn.style.display = _ttsPlaying ? 'none' : '';
+  if (pauseBtn) {
+    pauseBtn.style.display = _ttsPlaying ? '' : 'none';
+    pauseBtn.innerHTML = _ttsPaused ? '&#9654; 再開' : '&#10074;&#10074; 一時停止';
+  }
+  if (stopBtn) stopBtn.style.display = _ttsPlaying ? '' : 'none';
+  if (ttsBtn) ttsBtn.innerHTML = _ttsPlaying ? '&#9632; 停止' : '&#128266; 読み上げ';
+}
+
+// Preload voices
+if (typeof speechSynthesis !== 'undefined') {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
 
 /* ================================================================
