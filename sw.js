@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novel-manager-v1';
+const CACHE_NAME = 'novel-manager-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -27,28 +27,17 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch: cache-first, fallback to network
+// Fetch: network-first, fallback to cache (ensures latest code)
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) {
-        // Return cache but also update in background
-        const fetchPromise = fetch(e.request).then(response => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-          }
-          return response;
-        }).catch(() => {});
-        return cached;
+    fetch(e.request).then(response => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
       }
-      return fetch(e.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return response;
-      });
+      return response;
+    }).catch(() => {
+      return caches.match(e.request);
     })
   );
 });

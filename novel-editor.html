@@ -619,22 +619,20 @@ function openModal(title, bodyHtml, buttons) {
     btnsEl.appendChild(btn);
   });
   const _overlay = document.getElementById('modalOverlay');
-  _overlay.style.display = '';
-  _overlay.dataset.opening = '1';
+  _overlay.style.display = 'flex';
   _overlay.classList.add('open');
-  // Prevent the current click event from immediately closing the modal
-  setTimeout(() => { delete _overlay.dataset.opening; }, 100);
   const inp = document.querySelector('#modalBody .modal-input');
   if (inp) setTimeout(() => inp.focus(), 50);
 }
 
 function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
+  const ov = document.getElementById('modalOverlay');
+  ov.classList.remove('open');
+  ov.style.display = 'none';
 }
 
 document.getElementById('modalOverlay').addEventListener('click', e => {
-  const ov = document.getElementById('modalOverlay');
-  if (e.target === ov && !ov.dataset.opening) closeModal();
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
 });
 
 /* ================================================================
