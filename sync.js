@@ -38,15 +38,23 @@ function loadFirebaseSDK() {
 }
 
 // ===== Init =====
+let _syncInitDone = false;
+let _lastAuthUid = undefined; // track to prevent duplicate fires
+
 async function initSync() {
+  if (_syncInitDone) return;
+  _syncInitDone = true;
   try {
     await loadFirebaseSDK();
     _fb = firebase.initializeApp(FIREBASE_CONFIG);
     _auth = firebase.auth();
     _db = firebase.firestore();
 
-    // Listen auth state
+    // Listen auth state (only react to actual changes)
     _auth.onAuthStateChanged(user => {
+      const newUid = user ? user.uid : null;
+      if (newUid === _lastAuthUid) return; // no change, skip
+      _lastAuthUid = newUid;
       _user = user;
       updateSyncUI();
       if (user) {
@@ -127,10 +135,9 @@ async function pullFromCloud() {
     }
 
     syncToast('クラウドから同期しました');
-    // Reload page to reflect new data
+    // Refresh UI without page reload to avoid infinite loop
     if (typeof loadProjects === 'function') loadProjects();
     if (typeof loadState === 'function') loadState();
-    if (typeof init === 'function' && document.title.includes('エディタ')) location.reload();
 
   } catch (e) {
     console.warn('Pull failed:', e);

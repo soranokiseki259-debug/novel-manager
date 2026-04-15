@@ -620,7 +620,10 @@ function openModal(title, bodyHtml, buttons) {
   });
   const _overlay = document.getElementById('modalOverlay');
   _overlay.style.display = '';
+  _overlay.dataset.opening = '1';
   _overlay.classList.add('open');
+  // Prevent the current click event from immediately closing the modal
+  setTimeout(() => { delete _overlay.dataset.opening; }, 100);
   const inp = document.querySelector('#modalBody .modal-input');
   if (inp) setTimeout(() => inp.focus(), 50);
 }
@@ -630,7 +633,8 @@ function closeModal() {
 }
 
 document.getElementById('modalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
+  const ov = document.getElementById('modalOverlay');
+  if (e.target === ov && !ov.dataset.opening) closeModal();
 });
 
 /* ================================================================
