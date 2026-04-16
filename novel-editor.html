@@ -1094,6 +1094,7 @@ function novelFormat() {
       <div style="margin-bottom:10px;font-size:0.8rem;color:var(--text2);line-height:1.6;">
         一般的な小説のルールに基づいて整形します
       </div>
+      <div>「。」後の改行追加: <span class="cleanup-stat">${diff.periodBreaks}</span> 箇所</div>
       <div>字下げ追加（行頭に全角スペース）: <span class="cleanup-stat">${diff.indented}</span> 箇所</div>
       <div>！？後の全角スペース挿入: <span class="cleanup-stat">${diff.exclamationSpaces}</span> 箇所</div>
       <div>三点リーダー統一（… → ……）: <span class="cleanup-stat">${diff.ellipsis}</span> 箇所</div>
@@ -1113,6 +1114,11 @@ function novelFormat() {
 }
 
 function performNovelFormat(text) {
+  // --- Rule 0: 「。」の後に改行を挿入（文末で次の文へ）---
+  // ただし「。」「『。』「。）」のような閉じ括弧が続く場合や、
+  // 既に改行・句点が続く場合、行末の場合はスキップ
+  text = text.replace(/。(?![」』）】〉》\n。])/g, '。\n');
+
   let lines = text.split('\n');
 
   lines = lines.map(line => {
@@ -1209,7 +1215,10 @@ function getNovelFormatStats(original, formatted) {
   const hyphenDashes = (original.match(/\-{2,}/g) || []).length;
   const dashes = oddDashes + hyphenDashes;
 
-  return { indented, alreadyIndented, dialogueLines, exclamationSpaces, ellipsis, dashes };
+  // Count periods that will trigger a line break
+  const periodBreaks = (original.match(/。(?![」』）】〉》\n。])/g) || []).length;
+
+  return { indented, alreadyIndented, dialogueLines, exclamationSpaces, ellipsis, dashes, periodBreaks };
 }
 
 /* ================================================================

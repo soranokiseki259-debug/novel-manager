@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novel-manager-v3';
+const CACHE_NAME = 'novel-manager-v4';
 const ASSETS = [
   './',
   './index.html',
