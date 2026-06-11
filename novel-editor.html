@@ -98,6 +98,63 @@
     }
     .save-indicator.show { opacity: 1; }
 
+    /* ===== MOBILE HAMBURGER ===== */
+    .hamburger {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 1.2rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 199;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .hamburger { display: flex; }
+      header { padding: 8px 12px; gap: 8px; }
+      .header-title { font-size: 0.9rem; }
+      .header-project-name { max-width: 100px; font-size: 0.8rem; padding: 3px 8px; }
+      .header-btn { padding: 4px 8px; font-size: 0.72rem; }
+      .save-indicator { display: none; }
+      #sync-ui #sync-username { display: none; }
+      #sync-ui #sync-logout-btn { display: none; }
+      #sync-ui #sync-status { display: none; }
+
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        height: 100%;
+        z-index: 200;
+        transition: left 0.25s ease;
+        box-shadow: none;
+      }
+      .sidebar.open {
+        left: 0;
+        box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+      }
+      .editor-area { width: 100% !important; }
+      .editor-toolbar { flex-wrap: wrap; gap: 4px; }
+      .toolbar-btn { font-size: 0.75rem; padding: 4px 8px; }
+      .editor-ep-title { font-size: 0.8rem; }
+    }
+    @media (max-width: 480px) {
+      .header-title { display: none; }
+      .header-project-name { max-width: 80px; }
+      .header-btn.hide-mobile { display: none; }
+    }
+
     /* ===== MAIN LAYOUT ===== */
     .main-wrap {
       display: flex;
@@ -504,15 +561,17 @@
 
   <!-- HEADER -->
   <header>
+    <button class="hamburger" onclick="toggleMobileSidebar()" aria-label="メニュー">&#9776;</button>
     <a href="index.html" style="color:var(--accent);font-size:1.2rem;text-decoration:none;margin-right:4px" title="ホームへ戻る">&#8962;</a>
     <div class="header-title">Novel Editor</div>
     <div class="header-project-name" id="projectName" onclick="renameProject()" title="クリックして名前を変更">無題のプロジェクト</div>
     <div class="header-spacer"></div>
     <span class="save-indicator" id="saveIndicator">保存済み</span>
-    <button class="header-btn" onclick="importProject()">インポート</button>
-    <button class="header-btn" onclick="exportProject()">エクスポート</button>
+    <button class="header-btn hide-mobile" onclick="importProject()">インポート</button>
+    <button class="header-btn hide-mobile" onclick="exportProject()">エクスポート</button>
     <button class="header-btn" id="writingModeBtn" onclick="toggleWritingMode()">縦書き</button>
   </header>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
   <!-- MAIN -->
   <div class="main-wrap">
@@ -975,6 +1034,8 @@ function selectEpisode(epId) {
 
   updateStatusBar();
   renderSidebar();
+  // Close sidebar on mobile after selecting episode
+  if (window.innerWidth <= 768) closeMobileSidebar();
   // スクロールを先頭に戻す（描画完了後に実行）
   requestAnimationFrame(() => {
     textarea.setSelectionRange(0, 0);
@@ -1282,6 +1343,16 @@ document.getElementById('editorTextarea').addEventListener('paste', (e) => {
 /* ================================================================
    WRITING MODE
 ================================================================ */
+// ===== Mobile Sidebar =====
+function toggleMobileSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
 function toggleWritingMode() {
   const textarea = document.getElementById('editorTextarea');
   const btn = document.getElementById('writingModeBtn');
