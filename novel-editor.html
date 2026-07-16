@@ -543,6 +543,110 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ===== TTS READING VIEW (読み上げ追従ビュー) ===== */
+    .tts-view {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 5000;
+      flex-direction: column;
+    }
+    .tts-view.open { display: flex; }
+    .tts-view-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--bg2), var(--bg3));
+      border-bottom: 2px solid var(--accent);
+      flex-shrink: 0;
+    }
+    .tts-view-title {
+      flex: 1;
+      font-weight: 700;
+      font-size: 0.95rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tts-view-close {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tts-view-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px 45vh;
+      font-size: 1.02rem;
+      line-height: 2;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tts-view-body p { margin: 0 0 1em; }
+    .tts-sentence {
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.25s;
+      -webkit-box-decoration-break: clone;
+      box-decoration-break: clone;
+    }
+    .tts-sentence.current {
+      background: rgba(233,69,96,0.32);
+      color: #fff;
+    }
+    .tts-view-footer {
+      flex-shrink: 0;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+    }
+    .tts-progress {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .tts-footer-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+    }
+    .tts-ctrl-btn {
+      padding: 10px 16px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .tts-ctrl-btn.main {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      padding: 10px 26px;
+      font-size: 1.05rem;
+      min-width: 84px;
+    }
+    .tts-speed-select {
+      padding: 9px 6px;
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
     /* Cleanup preview */
     .cleanup-preview {
       margin-top: 12px;
@@ -624,6 +728,36 @@
 
   <!-- TOAST -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- TTS READING VIEW (読み上げ追従ビュー) -->
+  <div class="tts-view" id="ttsView">
+    <div class="tts-view-header">
+      <div class="tts-view-title" id="ttsViewTitle">読み上げ</div>
+      <button class="tts-view-close" onclick="stopTTS()">&#10005; 終了</button>
+    </div>
+    <div class="tts-view-body" id="ttsViewBody"></div>
+    <div class="tts-view-footer">
+      <div class="tts-progress" id="ttsProgress"></div>
+      <div class="tts-footer-controls">
+        <button class="tts-ctrl-btn" onclick="ttsPrevSentence()" title="前の文">&#9198;</button>
+        <button class="tts-ctrl-btn main" id="ttsViewPauseBtn" onclick="pauseResumeTTS()">&#10074;&#10074;</button>
+        <button class="tts-ctrl-btn" onclick="ttsNextSentence()" title="次の文">&#9197;</button>
+        <select class="tts-speed-select" id="ttsViewSpeed" onchange="ttsChangeSpeed(this.value)">
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1">1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="1.75">1.75x</option>
+          <option value="2">2x</option>
+          <option value="2.5">2.5x</option>
+          <option value="3">3x</option>
+          <option value="3.5">3.5x</option>
+          <option value="4">4x</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
   <!-- HIDDEN FILE INPUT -->
   <input type="file" id="fileInput" accept=".json" style="display:none;">
@@ -1388,10 +1522,14 @@ function copyEpisodeText() {
 /* ================================================================
    TEXT-TO-SPEECH (読み上げ)
 ================================================================ */
-let _ttsUtterance = null;
 let _ttsPlaying = false;
 let _ttsPaused = false;
-let _ttsRate = 1.0;
+let _ttsRate = parseFloat(localStorage.getItem('tts_rate') || '1.0') || 1.0;
+let _ttsSentences = [];  // { text, el }
+let _ttsIndex = 0;
+let _ttsToken = 0;       // 世代トークン: cancel後に届く古いonend/onerrorを無視する
+let _keepAliveAudio = null;
+let _wakeLock = null;
 
 function toggleTTS() {
   if (_ttsPlaying) {
@@ -1434,111 +1572,213 @@ function showTTSModal() {
   html += '<span id="ttsSpeedVal" style="min-width:32px;text-align:center;font-weight:600;">' + _ttsRate + 'x</span>';
   html += '</div></div>';
 
-  // Playback controls
-  html += '<div id="ttsControls" style="display:flex;gap:8px;justify-content:center;margin-top:8px;">';
-  html += '<button class="toolbar-btn" onclick="startTTS()" id="ttsPlayBtn" style="padding:8px 20px;font-size:0.9rem;">&#9654; 再生</button>';
-  html += '<button class="toolbar-btn" onclick="pauseResumeTTS()" id="ttsPauseBtn" style="padding:8px 16px;display:none;">&#10074;&#10074; 一時停止</button>';
-  html += '<button class="toolbar-btn" onclick="stopTTS()" id="ttsStopBtn" style="padding:8px 16px;display:none;">&#9632; 停止</button>';
-  html += '</div>';
+  // Wake Lock option (スリープ防止)
+  const wakeLockPref = localStorage.getItem('tts_wakelock') !== '0';
+  html += '<label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;font-size:0.85rem;">';
+  html += '<input type="checkbox" id="ttsWakeLockChk"' + (wakeLockPref ? ' checked' : '') + ' style="accent-color:var(--accent);width:16px;height:16px;">';
+  html += '画面を消さない（スリープ防止）';
+  html += '</label>';
 
-  html += '<div id="ttsStatus" style="text-align:center;margin-top:10px;font-size:0.78rem;color:var(--text2);"></div>';
+  html += '<div style="font-size:0.75rem;color:var(--text2);line-height:1.6;">';
+  html += '再生中は読み上げビューが開き、今読んでいる文がハイライトされます。';
+  html += 'Androidでは画面を消してもバックグラウンド再生を試みます（機種により動作が異なる場合があります）。';
+  html += '</div>';
   html += '</div>';
 
   // Store target text for playback
   window._ttsTargetText = targetText;
+  window._ttsTargetTitle = epTitle;
 
-  openModal('&#128266; 読み上げ' + (epTitle ? ' - ' + escHtml(epTitle) : ''), html, [{ label: '閉じる', action: () => stopTTS() }]);
+  openModal('&#128266; 読み上げ' + (epTitle ? ' - ' + escHtml(epTitle) : ''), html, [
+    { label: 'キャンセル' },
+    { label: '▶ 再生', primary: true, action: () => startTTS() }
+  ]);
 }
 
 function startTTS() {
   if (!window._ttsTargetText) return;
-  speechSynthesis.cancel(); // Clear any previous
 
-  _ttsRate = parseFloat(document.getElementById('ttsSpeed')?.value || 1.0);
+  const speedInput = document.getElementById('ttsSpeed');
+  if (speedInput) _ttsRate = parseFloat(speedInput.value) || 1.0;
+  localStorage.setItem('tts_rate', String(_ttsRate));
 
-  const text = window._ttsTargetText;
+  const wlChk = document.getElementById('ttsWakeLockChk');
+  const useWakeLock = wlChk ? wlChk.checked : (localStorage.getItem('tts_wakelock') !== '0');
+  localStorage.setItem('tts_wakelock', useWakeLock ? '1' : '0');
 
-  // Split into chunks (SpeechSynthesis has limits on long text)
-  const chunks = splitTextForTTS(text);
-  let currentChunk = 0;
-
-  function speakChunk() {
-    if (currentChunk >= chunks.length) {
-      onTTSEnd();
-      return;
-    }
-
-    _ttsUtterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
-    _ttsUtterance.lang = 'ja-JP';
-    _ttsUtterance.rate = _ttsRate;
-
-    // Try to find a Japanese voice
-    const voices = speechSynthesis.getVoices();
-    const jaVoice = voices.find(v => v.lang.startsWith('ja'));
-    if (jaVoice) _ttsUtterance.voice = jaVoice;
-
-    _ttsUtterance.onend = () => {
-      currentChunk++;
-      speakChunk();
-    };
-
-    _ttsUtterance.onerror = (e) => {
-      if (e.error !== 'canceled') {
-        console.warn('TTS error:', e);
-        onTTSEnd();
-      }
-    };
-
-    const status = document.getElementById('ttsStatus');
-    if (status) {
-      if (chunks.length > 1) {
-        status.textContent = '読み上げ中… (' + (currentChunk + 1) + '/' + chunks.length + ')';
-      } else {
-        status.textContent = '読み上げ中…';
-      }
-    }
-
-    speechSynthesis.speak(_ttsUtterance);
+  buildTTSView(window._ttsTargetText, window._ttsTargetTitle);
+  if (!_ttsSentences.length) {
+    toast('読み上げるテキストがありません', 'warn');
+    return;
   }
 
-  _ttsPlaying = true;
-  _ttsPaused = false;
-  updateTTSButtons();
-  speakChunk();
+  // 読み上げビューの速度セレクトを現在値に合わせる（最も近い選択肢にスナップ）
+  const sel = document.getElementById('ttsViewSpeed');
+  if (sel) {
+    let best = sel.options[0].value, bestDiff = Infinity;
+    for (const opt of sel.options) {
+      const d = Math.abs(parseFloat(opt.value) - _ttsRate);
+      if (d < bestDiff) { bestDiff = d; best = opt.value; }
+    }
+    sel.value = best;
+    _ttsRate = parseFloat(best);
+  }
+
+  startKeepAlive();
+  setupMediaSession(window._ttsTargetTitle);
+  if (useWakeLock) acquireWakeLock();
+
+  speakFrom(0);
 }
 
-function splitTextForTTS(text) {
-  // Split by paragraphs, keep chunks under ~200 chars for stability
-  const paragraphs = text.split(/\n+/);
-  const chunks = [];
-  let current = '';
+/* --- 文単位分割（括弧内の句点では区切らない） --- */
+function splitSentencesInParagraph(para) {
+  const OPEN = '「『（【〈《〔';
+  const CLOSE = '」』）】〉》〕';
+  const ENDS = '。！？!?';
+  const TRAIL = '。！？!?…‥」』）】〉》〕';
+  const out = [];
+  let cur = '';
+  let depth = 0;
 
-  for (const p of paragraphs) {
-    if (!p.trim()) continue;
-    if (current.length + p.length > 200 && current.length > 0) {
-      chunks.push(current.trim());
-      current = '';
+  for (let i = 0; i < para.length; i++) {
+    const ch = para[i];
+    cur += ch;
+    if (OPEN.includes(ch)) depth++;
+    else if (CLOSE.includes(ch)) depth = Math.max(0, depth - 1);
+    if (depth === 0 && ENDS.includes(ch)) {
+      const next = para[i + 1];
+      if (next && TRAIL.includes(next)) continue; // 「？」の連続や閉じ括弧はまとめる
+      out.push(cur);
+      cur = '';
     }
-    current += (current ? '\n' : '') + p;
   }
-  if (current.trim()) chunks.push(current.trim());
-  if (chunks.length === 0) chunks.push(text);
+  if (cur) out.push(cur);
 
-  return chunks;
+  // 長すぎる文は読点で分割（スマホで長文が途切れる対策）
+  const result = [];
+  for (const s of out) {
+    let rest = s;
+    while (rest.length > 120) {
+      let cut = rest.lastIndexOf('、', 120);
+      if (cut < 40) cut = 119;
+      result.push(rest.slice(0, cut + 1));
+      rest = rest.slice(cut + 1);
+    }
+    if (rest) result.push(rest);
+  }
+  return result.filter(s => s.trim());
+}
+
+/* --- 読み上げビュー構築 --- */
+function buildTTSView(text, title) {
+  const body = document.getElementById('ttsViewBody');
+  body.innerHTML = '';
+  _ttsSentences = [];
+  _ttsIndex = 0;
+
+  text.split(/\n/).forEach(para => {
+    if (!para.trim()) return;
+    const p = document.createElement('p');
+    splitSentencesInParagraph(para).forEach(s => {
+      const span = document.createElement('span');
+      span.className = 'tts-sentence';
+      span.textContent = s;
+      const idx = _ttsSentences.length;
+      span.onclick = () => speakFrom(idx); // 文をタップでそこから再生
+      _ttsSentences.push({ text: s, el: span });
+      p.appendChild(span);
+    });
+    if (p.childNodes.length) body.appendChild(p);
+  });
+
+  document.getElementById('ttsViewTitle').textContent = title || '読み上げ';
+  document.getElementById('ttsView').classList.add('open');
+}
+
+/* --- 再生エンジン: 1文ずつ読む --- */
+function speakFrom(i) {
+  if (!_ttsSentences.length) return;
+  if (i < 0) i = 0;
+  if (i >= _ttsSentences.length) {
+    onTTSEnd();
+    toast('読み上げが終わりました');
+    return;
+  }
+
+  const myToken = ++_ttsToken;
+  _ttsIndex = i;
+  _ttsPlaying = true;
+  _ttsPaused = false;
+  updateTTSHighlight();
+  updateTTSButtons();
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+
+  const u = new SpeechSynthesisUtterance(_ttsSentences[i].text);
+  u.lang = 'ja-JP';
+  u.rate = _ttsRate;
+  const voices = speechSynthesis.getVoices();
+  const jaVoice = voices.find(v => v.lang && v.lang.startsWith('ja'));
+  if (jaVoice) u.voice = jaVoice;
+
+  u.onend = () => {
+    if (myToken !== _ttsToken || !_ttsPlaying || _ttsPaused) return;
+    speakFrom(i + 1);
+  };
+  u.onerror = (e) => {
+    if (myToken !== _ttsToken) return;
+    if (e.error === 'canceled' || e.error === 'interrupted') return;
+    console.warn('TTS error:', e);
+    if (_ttsPlaying && !_ttsPaused) speakFrom(i + 1); // 読めない文はスキップして続行
+  };
+
+  // Androidではcancel直後のspeakが無視されることがあるため少し待つ
+  const doSpeak = () => { if (myToken === _ttsToken) speechSynthesis.speak(u); };
+  if (speechSynthesis.speaking || speechSynthesis.pending) {
+    speechSynthesis.cancel();
+    setTimeout(doSpeak, 60);
+  } else {
+    doSpeak();
+  }
+}
+
+function updateTTSHighlight() {
+  document.querySelectorAll('.tts-sentence.current').forEach(el => el.classList.remove('current'));
+  const s = _ttsSentences[_ttsIndex];
+  if (!s) return;
+  s.el.classList.add('current');
+  try { s.el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  const prog = document.getElementById('ttsProgress');
+  if (prog) prog.textContent = (_ttsIndex + 1) + ' / ' + _ttsSentences.length + ' 文';
+}
+
+function ttsPrevSentence() { if (_ttsSentences.length) speakFrom(Math.max(0, _ttsIndex - 1)); }
+function ttsNextSentence() { if (_ttsSentences.length) speakFrom(_ttsIndex + 1); }
+
+function ttsChangeSpeed(v) {
+  _ttsRate = parseFloat(v) || 1.0;
+  localStorage.setItem('tts_rate', String(_ttsRate));
+  if (_ttsPlaying && !_ttsPaused) speakFrom(_ttsIndex); // 現在の文から新しい速度で読み直す
 }
 
 function pauseResumeTTS() {
+  if (!_ttsPlaying) return;
   if (_ttsPaused) {
-    speechSynthesis.resume();
-    _ttsPaused = false;
+    // 再開: Androidではpause/resumeが不安定なので、現在の文の頭から読み直す
+    if (_keepAliveAudio) _keepAliveAudio.play().catch(() => {});
+    speakFrom(_ttsIndex);
   } else {
-    speechSynthesis.pause();
     _ttsPaused = true;
+    _ttsToken++;
+    speechSynthesis.cancel();
+    if (_keepAliveAudio) _keepAliveAudio.pause();
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+    updateTTSButtons();
   }
-  updateTTSButtons();
 }
 
 function stopTTS() {
+  _ttsToken++;
   speechSynthesis.cancel();
   onTTSEnd();
 }
@@ -1546,27 +1786,107 @@ function stopTTS() {
 function onTTSEnd() {
   _ttsPlaying = false;
   _ttsPaused = false;
-  _ttsUtterance = null;
+  stopKeepAlive();
+  releaseWakeLock();
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = 'none';
+    try { navigator.mediaSession.metadata = null; } catch (e) {}
+  }
+  document.getElementById('ttsView').classList.remove('open');
   updateTTSButtons();
-  const btn = document.getElementById('ttsBtn');
-  if (btn) btn.innerHTML = '&#128266; 読み上げ';
-  const status = document.getElementById('ttsStatus');
-  if (status) status.textContent = '';
 }
 
 function updateTTSButtons() {
-  const playBtn = document.getElementById('ttsPlayBtn');
-  const pauseBtn = document.getElementById('ttsPauseBtn');
-  const stopBtn = document.getElementById('ttsStopBtn');
   const ttsBtn = document.getElementById('ttsBtn');
-
-  if (playBtn) playBtn.style.display = _ttsPlaying ? 'none' : '';
-  if (pauseBtn) {
-    pauseBtn.style.display = _ttsPlaying ? '' : 'none';
-    pauseBtn.innerHTML = _ttsPaused ? '&#9654; 再開' : '&#10074;&#10074; 一時停止';
-  }
-  if (stopBtn) stopBtn.style.display = _ttsPlaying ? '' : 'none';
   if (ttsBtn) ttsBtn.innerHTML = _ttsPlaying ? '&#9632; 停止' : '&#128266; 読み上げ';
+  const pauseBtn = document.getElementById('ttsViewPauseBtn');
+  if (pauseBtn) pauseBtn.innerHTML = _ttsPaused ? '&#9654;' : '&#10074;&#10074;';
+}
+
+/* --- バックグラウンド再生対策 (Android) ---
+   ほぼ無音のループ音源を鳴らし続けることで、タブを「音声再生中」として
+   維持し、画面オフ時もタブが凍結されにくくする。Media Sessionにより
+   ロック画面・通知からの操作にも対応する。 */
+function makeKeepAliveWav() {
+  // 25Hz・極小音量のサイン波1秒（スピーカーではほぼ聞こえない）
+  const rate = 8000, n = rate;
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); writeStr(8, 'WAVE');
+  writeStr(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  writeStr(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) {
+    v.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 25 * i / rate) * 300), true);
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+function startKeepAlive() {
+  try {
+    if (!_keepAliveAudio) {
+      _keepAliveAudio = new Audio(URL.createObjectURL(makeKeepAliveWav()));
+      _keepAliveAudio.loop = true;
+    }
+    _keepAliveAudio.play().catch(() => {});
+  } catch (e) {}
+}
+
+function stopKeepAlive() {
+  if (_keepAliveAudio) {
+    _keepAliveAudio.pause();
+    _keepAliveAudio.currentTime = 0;
+  }
+}
+
+function setupMediaSession(title) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title || '読み上げ',
+      artist: '小説管理',
+      album: state.projectTitle || ''
+    });
+    navigator.mediaSession.setActionHandler('play', () => { if (_ttsPaused) pauseResumeTTS(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (_ttsPlaying && !_ttsPaused) pauseResumeTTS(); });
+    navigator.mediaSession.setActionHandler('stop', () => stopTTS());
+    navigator.mediaSession.setActionHandler('nexttrack', () => ttsNextSentence());
+    navigator.mediaSession.setActionHandler('previoustrack', () => ttsPrevSentence());
+  } catch (e) {}
+}
+
+/* --- Wake Lock（画面スリープ防止・オプション） --- */
+async function acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      _wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (e) { /* 省電力モード等で失敗することがある */ }
+}
+
+function releaseWakeLock() {
+  if (_wakeLock) {
+    try { _wakeLock.release(); } catch (e) {}
+    _wakeLock = null;
+  }
+}
+
+// 画面復帰時にWake Lockを取り直す（Wake Lockはタブが隠れると自動解放されるため）
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && _ttsPlaying && localStorage.getItem('tts_wakelock') !== '0') {
+    acquireWakeLock();
+  }
+});
+
+// デスクトップChromeの「長い発話が途中で止まる」既知バグ対策（Androidには適用しない）
+if (typeof speechSynthesis !== 'undefined' && !/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+  setInterval(() => {
+    if (_ttsPlaying && !_ttsPaused && speechSynthesis.speaking) {
+      speechSynthesis.pause();
+      speechSynthesis.resume();
+    }
+  }, 10000);
 }
 
 // Preload voices
