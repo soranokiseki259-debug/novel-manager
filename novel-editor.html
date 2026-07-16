@@ -1589,7 +1589,7 @@ function showTTSModal() {
   window._ttsTargetText = targetText;
   window._ttsTargetTitle = epTitle;
 
-  openModal('&#128266; 読み上げ' + (epTitle ? ' - ' + escHtml(epTitle) : ''), html, [
+  openModal('🔊 読み上げ' + (epTitle ? ' - ' + epTitle : ''), html, [
     { label: 'キャンセル' },
     { label: '▶ 再生', primary: true, action: () => startTTS() }
   ]);
@@ -2005,6 +2005,80 @@ document.addEventListener('keydown', e => {
 /* ================================================================
    INIT
 ================================================================ */
+/* ================================================================
+   SHARE TARGET (他アプリからの「共有」受け取り)
+   manifest.json の share_target により、Androidの共有メニューから
+   novel-editor.html?share_text=... の形でテキストが渡ってくる。
+================================================================ */
+function checkSharedText() {
+  const params = new URLSearchParams(location.search);
+  const text = params.get('share_text') || '';
+  const title = params.get('share_title') || '';
+  const url = params.get('share_url') || '';
+  if (!text && !title && !url) return;
+
+  // 再読み込みで二重取込しないようURLからパラメータを消す
+  history.replaceState(null, '', location.pathname);
+
+  const shared = [text, url].filter(Boolean).join('\n').trim();
+  if (!shared) return;
+  showShareImportModal(shared, title.trim());
+}
+
+function showShareImportModal(text, title) {
+  const count = text.replace(/[\s　]/g, '').length;
+  const preview = text.slice(0, 200);
+
+  let html = '<div style="font-size:0.88rem;line-height:1.7;">';
+  if (title) {
+    html += '<div style="margin-bottom:6px;font-weight:600;">' + escHtml(title) + '</div>';
+  }
+  html += '<div style="margin-bottom:8px;color:var(--text2);">共有されたテキスト（' + count.toLocaleString() + '文字）</div>';
+  html += '<div class="cleanup-preview" style="max-height:180px;overflow-y:auto;white-space:pre-wrap;">';
+  html += escHtml(preview) + (text.length > 200 ? '…' : '');
+  html += '</div>';
+  html += '<div style="margin-top:10px;font-size:0.8rem;color:var(--text2);">どこに追加するか選んでください。</div>';
+  html += '</div>';
+
+  const buttons = [{ label: 'キャンセル' }];
+  buttons.push({ label: '新しい話にする', action: () => importSharedAsNewEpisode(text, title) });
+  const activeEp = state.activeEpisodeId ? findEpisode(state.activeEpisodeId) : null;
+  if (activeEp) {
+    buttons.push({ label: '開いている話に追記', primary: true, action: () => appendSharedToActiveEpisode(text) });
+  }
+
+  openModal('📥 テキストを受け取りました', html, buttons);
+}
+
+function importSharedAsNewEpisode(text, title) {
+  let ch = state.chapters[state.chapters.length - 1];
+  if (!ch) {
+    ch = { id: 'ch_' + uid(), title: '第1章', episodes: [], collapsed: false };
+    state.chapters.push(ch);
+  }
+  const epId = 'ep_' + uid();
+  const epTitle = title || ('共有テキスト ' + new Date().toLocaleDateString('ja-JP'));
+  ch.episodes.push({ id: epId, title: epTitle, content: text });
+  ch.collapsed = false;
+  renderSidebar();
+  selectEpisode(epId);
+  saveState();
+  toast('「' + epTitle + '」として追加しました');
+}
+
+function appendSharedToActiveEpisode(text) {
+  const ep = findEpisode(state.activeEpisodeId);
+  if (!ep) { importSharedAsNewEpisode(text, ''); return; }
+  const textarea = document.getElementById('editorTextarea');
+  syncCurrentEpisode();
+  ep.content = ep.content ? (ep.content.replace(/\n+$/, '') + '\n\n' + text) : text;
+  textarea.value = ep.content;
+  textarea.scrollTop = textarea.scrollHeight; // 追記した末尾を見せる
+  updateStatusBar();
+  saveState();
+  toast('「' + ep.title + '」の末尾に追加しました');
+}
+
 function init() {
   loadState();
   document.getElementById('projectName').textContent = state.projectTitle;
@@ -2027,6 +2101,9 @@ function init() {
       showEmptyState();
     }
   }
+
+  // 他アプリからの「共有」で開かれた場合の受け取り
+  checkSharedText();
 }
 
 init();

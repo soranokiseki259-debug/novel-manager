@@ -16,5 +16,14 @@
     }
   ],
   "categories": ["productivity", "utilities"],
-  "lang": "ja"
+  "lang": "ja",
+  "share_target": {
+    "action": "./novel-editor.html",
+    "method": "GET",
+    "params": {
+      "title": "share_title",
+      "text": "share_text",
+      "url": "share_url"
+    }
+  }
 }
