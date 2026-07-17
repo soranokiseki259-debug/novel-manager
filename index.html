@@ -333,6 +333,33 @@
       .proj-btn { font-size: 0.7rem; padding: 5px 8px; }
     }
 
+    /* New project card */
+    .new-project-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      border: 2px dashed var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .new-project-card:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+
+    .modal-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+    }
+    .modal-input:focus { border-color: var(--accent2); }
+
     /* Hidden file input */
     #importInput { display: none; }
 
@@ -447,6 +474,51 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// ===== Editor Storage Migration =====
+// 旧形式 (novel_editor_data 1枠) → 新形式 (ne_projects 複数) への自動移行
+function migrateEditorStorage() {
+  if (localStorage.getItem('ne_projects')) return;
+  const raw = localStorage.getItem('novel_editor_data');
+  if (raw) {
+    try {
+      const data = JSON.parse(raw);
+      // クラウド同期の旧ドキュメントIDと揃えるため 'main' を維持
+      localStorage.setItem('ne_proj_main', raw);
+      localStorage.setItem('ne_projects', JSON.stringify([{ id: 'main', title: data.projectTitle || '無題のプロジェクト' }]));
+      localStorage.setItem('ne_active', 'main');
+      localStorage.removeItem('novel_editor_data');
+    } catch (e) { console.warn('Editor data migration failed:', e); }
+  } else {
+    localStorage.setItem('ne_projects', '[]');
+  }
+}
+
+// ===== Action Modal =====
+function openActionModal(title, bodyHtml, buttons) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  const btnsEl = document.getElementById('modalBtns');
+  btnsEl.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    if (b.primary) btn.className = 'primary';
+    btn.textContent = b.label;
+    btn.onclick = () => { closeActionModal(); if (b.action) b.action(); };
+    btnsEl.appendChild(btn);
+  });
+  document.getElementById('actionModal').classList.add('open');
+  const inp = document.querySelector('#modalBody .modal-input');
+  if (inp) setTimeout(() => { inp.focus(); inp.select(); }, 50);
+}
+
+function closeActionModal() {
+  document.getElementById('actionModal').classList.remove('open');
+}
+
+document.getElementById('actionModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('actionModal')) closeActionModal();
+});
+
 // ===== Load Projects =====
 function loadProjects() {
   loadSettingsProjects();
@@ -491,25 +563,72 @@ function loadSettingsProjects() {
 
 function loadEditorProjects() {
   const container = document.getElementById('editorProjects');
-  const raw = localStorage.getItem('novel_editor_data');
-  if (!raw) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#9997;&#65039;</div><div class="empty-text">執筆プロジェクトがありません<br>「執筆エディタ」から新規作成できます</div></div>';
-    return;
-  }
+  let projects = [];
+  try { projects = JSON.parse(localStorage.getItem('ne_projects') || '[]'); } catch(e) {}
 
-  try {
-    const data = JSON.parse(raw);
+  let html = projects.map(p => {
+    let data = {};
+    try { data = JSON.parse(localStorage.getItem('ne_proj_' + p.id) || '{}'); } catch(e) {}
     const chapCount = (data.chapters||[]).length;
     const epCount = (data.chapters||[]).reduce((s, c) => s + (c.episodes||[]).length, 0);
-    container.innerHTML = renderProjectCard(
-      data.projectTitle || '無題のプロジェクト',
+    return renderProjectCard(
+      p.title || data.projectTitle || '無題のプロジェクト',
       { chapters: chapCount, episodes: epCount },
       'editor',
-      'main'
+      p.id
     );
-  } catch(e) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-text">データの読み取りに失敗しました</div></div>';
-  }
+  }).join('');
+
+  html += '<div class="project-card new-project-card" onclick="createEditorProject()">＋ 新しい執筆プロジェクト</div>';
+  container.innerHTML = html;
+}
+
+function createEditorProject() {
+  const projects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+  const defaultName = '新しい作品' + (projects.length ? ' ' + (projects.length + 1) : '');
+  openActionModal('新しい執筆プロジェクト',
+    '<input class="modal-input" id="newEditorProjName" value="' + escH(defaultName) + '" placeholder="作品タイトル">',
+    [
+      { label: 'キャンセル' },
+      { label: '作成して開く', primary: true, action: () => {
+        const title = document.getElementById('newEditorProjName').value.trim() || defaultName;
+        const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6);
+        const initialState = { projectTitle: title, chapters: [], activeEpisodeId: null, writingMode: 'horizontal' };
+        projects.push({ id, title });
+        localStorage.setItem('ne_projects', JSON.stringify(projects));
+        localStorage.setItem('ne_proj_' + id, JSON.stringify(initialState));
+        localStorage.setItem('ne_active', id);
+        location.href = 'novel-editor.html';
+      }}
+    ]);
+}
+
+function openEditorProject(id) {
+  localStorage.setItem('ne_active', id);
+  location.href = 'novel-editor.html';
+}
+
+function deleteEditorProject(id) {
+  const projects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+  const proj = projects.find(p => p.id === id);
+  if (!proj) return;
+  openActionModal('プロジェクトの削除',
+    '<p style="font-size:0.9rem;color:var(--text2);line-height:1.6;">「' + escH(proj.title) + '」を削除しますか？<br>中の章・話もすべて削除されます。この操作は取り消せません。</p>',
+    [
+      { label: 'キャンセル' },
+      { label: '削除', primary: true, action: () => {
+        const rest = projects.filter(p => p.id !== id);
+        localStorage.setItem('ne_projects', JSON.stringify(rest));
+        localStorage.removeItem('ne_proj_' + id);
+        if (localStorage.getItem('ne_active') === id) {
+          if (rest.length) localStorage.setItem('ne_active', rest[0].id);
+          else localStorage.removeItem('ne_active');
+        }
+        if (typeof syncDeleteEditorProject === 'function') syncDeleteEditorProject(id);
+        loadProjects();
+        toast('「' + proj.title + '」を削除しました');
+      }}
+    ]);
 }
 
 function renderProjectCard(title, stats, type, id) {
@@ -519,17 +638,21 @@ function renderProjectCard(title, stats, type, id) {
     return `${labels[k] || k}: ${v}`;
   }).join(' / ');
 
-  const openUrl = type === 'settings' ? 'novel-settings.html' : 'novel-editor.html';
+  const openAction = type === 'settings' ? `location.href='novel-settings.html'` : `openEditorProject('${id}')`;
+  const deleteBtn = type === 'editor'
+    ? `<button class="proj-btn" onclick="event.stopPropagation(); deleteEditorProject('${id}')">削除</button>`
+    : '';
 
-  return `<div class="project-card" onclick="location.href='${openUrl}'">
+  return `<div class="project-card" onclick="${openAction}">
     <div class="project-thumb">${initial}</div>
     <div class="project-info">
       <div class="project-name">${escH(title)}</div>
       <div class="project-meta"><span>${statStr}</span></div>
     </div>
     <div class="project-actions">
-      <button class="proj-btn accent" onclick="event.stopPropagation(); location.href='${openUrl}'">開く</button>
+      <button class="proj-btn accent" onclick="event.stopPropagation(); ${openAction}">開く</button>
       <button class="proj-btn" onclick="event.stopPropagation(); exportProject('${type}','${id}')">書出</button>
+      ${deleteBtn}
     </div>
   </div>`;
 }
@@ -551,8 +674,13 @@ document.getElementById('importInput').addEventListener('change', e => {
 
         // Detect type: settings (has chars/places) vs editor (has chapters)
         if (data.chapters) {
-          // Editor project
-          localStorage.setItem('novel_editor_data', JSON.stringify(data));
+          // Editor project — 新しいプロジェクトとして追加
+          const eprojects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+          const id = 'p' + Date.now() + Math.random().toString(36).slice(2, 6);
+          eprojects.push({ id, title: data.projectTitle || '無題のプロジェクト' });
+          localStorage.setItem('ne_projects', JSON.stringify(eprojects));
+          localStorage.setItem('ne_proj_' + id, JSON.stringify(data));
+          localStorage.setItem('ne_active', id);
           toast('執筆データをインポートしました');
         } else if (data.chars || data.places || data.plot) {
           // Settings project — import into nb system
@@ -581,7 +709,7 @@ document.getElementById('importInput').addEventListener('change', e => {
 function exportProject(type, id) {
   let data;
   if (type === 'editor') {
-    data = localStorage.getItem('novel_editor_data');
+    data = localStorage.getItem('ne_proj_' + id);
   } else if (id === 'legacy') {
     data = localStorage.getItem('novelboard');
   } else {
@@ -616,11 +744,12 @@ function exportAllData() {
     try { allData.legacySettings = JSON.parse(legacy); } catch(e) {}
   }
 
-  // Editor
-  const editor = localStorage.getItem('novel_editor_data');
-  if (editor) {
-    try { allData.editorData = JSON.parse(editor); } catch(e) {}
-  }
+  // Editor projects
+  const eprojects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+  allData.editorProjects = eprojects.map(p => {
+    try { return { ...p, data: JSON.parse(localStorage.getItem('ne_proj_' + p.id) || '{}') }; }
+    catch(e) { return p; }
+  });
 
   downloadJSON(allData, 'novel_manager_backup_' + new Date().toISOString().slice(0,10) + '.json');
   toast('全データをエクスポートしました');
@@ -642,6 +771,7 @@ function escH(s) {
 }
 
 // ===== Init =====
+migrateEditorStorage();
 loadProjects();
 </script>
 </body>

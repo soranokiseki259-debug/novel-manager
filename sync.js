@@ -121,16 +121,32 @@ async function pullFromCloud() {
       localStorage.setItem('nb_projects', JSON.stringify(merged));
     }
 
-    // Pull editor data
-    const editorDoc = await _db.collection('users').doc(uid).collection('editor_data').doc('main').get();
-    if (editorDoc.exists) {
-      const cloudData = editorDoc.data();
-      const localRaw = localStorage.getItem('novel_editor_data');
-      const localData = localRaw ? JSON.parse(localRaw) : null;
-      const cloudTime = cloudData._syncTime || 0;
-      const localTime = localData?._syncTime || 0;
-      if (!localData || cloudTime >= localTime) {
-        localStorage.setItem('novel_editor_data', JSON.stringify(cloudData));
+    // Pull editor projects (複数プロジェクト対応: editor_data/<projectId> ごとに1ドキュメント)
+    const edSnap = await _db.collection('users').doc(uid).collection('editor_data').get();
+    if (!edSnap.empty) {
+      const eprojects = [];
+      edSnap.forEach(doc => {
+        const data = doc.data();
+        eprojects.push({ id: doc.id, title: data.projectTitle || '無題のプロジェクト' });
+        const localRaw = localStorage.getItem('ne_proj_' + doc.id);
+        const localData = localRaw ? JSON.parse(localRaw) : null;
+        const cloudTime = data._syncTime || 0;
+        const localTime = localData?._syncTime || 0;
+        if (!localData || cloudTime >= localTime) {
+          localStorage.setItem('ne_proj_' + doc.id, JSON.stringify(data));
+        }
+      });
+      // Merge project list
+      const localE = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+      const mergedE = [...localE];
+      eprojects.forEach(cp => {
+        if (!mergedE.find(lp => lp.id === cp.id)) {
+          mergedE.push(cp);
+        }
+      });
+      localStorage.setItem('ne_projects', JSON.stringify(mergedE));
+      if (!localStorage.getItem('ne_active') && mergedE.length) {
+        localStorage.setItem('ne_active', mergedE[0].id);
       }
     }
 
@@ -138,6 +154,7 @@ async function pullFromCloud() {
     // Refresh UI without page reload to avoid infinite loop
     if (typeof loadProjects === 'function') loadProjects();
     if (typeof loadState === 'function') loadState();
+    if (typeof renderSidebar === 'function') renderSidebar();
 
   } catch (e) {
     console.warn('Pull failed:', e);
@@ -155,7 +172,7 @@ function pushToCloud(type, key, data) {
   if (type === 'settings') {
     localStorage.setItem('nb_proj_' + key, JSON.stringify(data));
   } else if (type === 'editor') {
-    localStorage.setItem('novel_editor_data', JSON.stringify(data));
+    localStorage.setItem('ne_proj_' + key, JSON.stringify(data));
   }
 
   // Debounced cloud push
@@ -169,7 +186,10 @@ function pushToCloud(type, key, data) {
         const projects = JSON.parse(localStorage.getItem('nb_projects') || '[]');
         await _db.collection('users').doc(uid).set({ projectList: projects }, { merge: true });
       } else if (type === 'editor') {
-        await _db.collection('users').doc(uid).collection('editor_data').doc('main').set(data);
+        await _db.collection('users').doc(uid).collection('editor_data').doc(key).set(data);
+        // Also update editor project list
+        const eprojects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+        await _db.collection('users').doc(uid).set({ editorProjectList: eprojects }, { merge: true });
       }
       updateSyncIndicator('synced');
     } catch (e) {
@@ -186,8 +206,21 @@ function syncSettingsProject(projectId, data) {
   pushToCloud('settings', projectId, data);
 }
 
-function syncEditorData(data) {
-  pushToCloud('editor', 'main', data);
+function syncEditorData(projectId, data) {
+  pushToCloud('editor', projectId, data);
+}
+
+// プロジェクト削除をクラウドにも反映（未ログイン時は何もしない）
+async function syncDeleteEditorProject(projectId) {
+  if (!_user || !_db) return;
+  try {
+    const uid = _user.uid;
+    await _db.collection('users').doc(uid).collection('editor_data').doc(projectId).delete();
+    const eprojects = JSON.parse(localStorage.getItem('ne_projects') || '[]');
+    await _db.collection('users').doc(uid).set({ editorProjectList: eprojects }, { merge: true });
+  } catch (e) {
+    console.warn('Cloud delete failed:', e);
+  }
 }
 
 // ===== UI =====

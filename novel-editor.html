@@ -861,25 +861,75 @@ document.addEventListener('click', closeCtxMenu);
 
 /* ================================================================
    DATA / PERSISTENCE
+   複数プロジェクト対応:
+   - ne_projects: [{id, title}] のプロジェクト一覧
+   - ne_proj_<id>: 各プロジェクトの本体
+   - ne_active: 現在開いているプロジェクトID
 ================================================================ */
-const STORAGE_KEY = 'novel_editor_data';
+const NE_LIST_KEY = 'ne_projects';
+let _projectId = null;
+
+// 旧形式 (novel_editor_data 1枠) → 新形式への自動移行 (index.html と同じ処理)
+function migrateEditorStorage() {
+  if (localStorage.getItem(NE_LIST_KEY)) return;
+  const raw = localStorage.getItem('novel_editor_data');
+  if (raw) {
+    try {
+      const data = JSON.parse(raw);
+      // クラウド同期の旧ドキュメントIDと揃えるため 'main' を維持
+      localStorage.setItem('ne_proj_main', raw);
+      localStorage.setItem(NE_LIST_KEY, JSON.stringify([{ id: 'main', title: data.projectTitle || '無題のプロジェクト' }]));
+      localStorage.setItem('ne_active', 'main');
+      localStorage.removeItem('novel_editor_data');
+    } catch (e) { console.warn('Editor data migration failed:', e); }
+  } else {
+    localStorage.setItem(NE_LIST_KEY, '[]');
+  }
+}
 
 function saveState() {
   // Save current textarea content first
   syncCurrentEpisode();
+  if (!_projectId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem('ne_proj_' + _projectId, JSON.stringify(state));
+    // プロジェクト一覧のタイトルを追随（名前変更時）
+    try {
+      const list = JSON.parse(localStorage.getItem(NE_LIST_KEY) || '[]');
+      const entry = list.find(p => p.id === _projectId);
+      if (entry && entry.title !== state.projectTitle) {
+        entry.title = state.projectTitle;
+        localStorage.setItem(NE_LIST_KEY, JSON.stringify(list));
+      }
+    } catch (e) {}
     showSaveIndicator();
     // Cloud sync
-    if (typeof syncEditorData === 'function') syncEditorData(state);
+    if (typeof syncEditorData === 'function') syncEditorData(_projectId, state);
   } catch (e) {
     console.error('Save failed:', e);
   }
 }
 
 function loadState() {
+  migrateEditorStorage();
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(NE_LIST_KEY) || '[]'); } catch (e) {}
+
+  _projectId = localStorage.getItem('ne_active');
+  if (!_projectId || !list.find(p => p.id === _projectId)) {
+    _projectId = list.length ? list[0].id : null;
+  }
+  if (!_projectId) {
+    // プロジェクトが1つもない → 新規作成して登録
+    _projectId = 'p' + Date.now() + Math.random().toString(36).slice(2, 6);
+    list.push({ id: _projectId, title: state.projectTitle });
+    localStorage.setItem(NE_LIST_KEY, JSON.stringify(list));
+    localStorage.setItem('ne_proj_' + _projectId, JSON.stringify(state));
+  }
+  localStorage.setItem('ne_active', _projectId);
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem('ne_proj_' + _projectId);
     if (raw) {
       const loaded = JSON.parse(raw);
       state = { ...state, ...loaded };
