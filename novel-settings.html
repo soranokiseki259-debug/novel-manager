@@ -1474,6 +1474,8 @@ function save() {
   }
   // Cloud sync
   if (typeof syncSettingsProject === 'function') syncSettingsProject(id, state);
+  // Folder sync (folder-sync.js)
+  if (typeof fsOnLocalChange === 'function') fsOnLocalChange();
   updateProjBadge();
 }
 
@@ -3427,6 +3429,7 @@ function doImport(mode) {
 </div>
 
 <script src="sync.js"></script>
+<script src="folder-sync.js"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>

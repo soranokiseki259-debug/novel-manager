@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novel-manager-v9';
+const CACHE_NAME = 'novel-manager-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,8 @@ const ASSETS = [
   './novel-editor.html',
   './icon.svg',
   './manifest.json',
-  './sync.js'
+  './sync.js',
+  './folder-sync.js'
 ];
 
 // Install: cache all assets
